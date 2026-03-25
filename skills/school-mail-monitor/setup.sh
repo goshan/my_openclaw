@@ -4,10 +4,11 @@ set -e
 echo "=== School Mail Monitor Setup ==="
 echo ""
 
-# 1. Install skill
-echo "1. Installing skill..."
 SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" &> /dev/null && pwd)
 SKILL_DIR="$HOME/.openclaw/skills/school-mail-monitor"
+
+# 1. Install skill
+echo "1. Installing skill..."
 mkdir -p "$SKILL_DIR/scripts"
 cp "$SCRIPT_DIR/SKILL.md" "$SKILL_DIR/SKILL.md"
 cp "$SCRIPT_DIR/scripts/init_db.sh" "$SKILL_DIR/scripts/init_db.sh"
