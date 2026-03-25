@@ -175,6 +175,27 @@ If no new emails found, tell user for chat, do NOT send a message to Slack for c
 
 ## Manual Commands
 
-User can also ask:
-- "Check school emails" — run the full workflow manually
-- "Explain more details about a mail" - get the content of the target mail by using `gog` and give more details
+User can also ask questions directly in chat
+
+### Check school emails
+
+User can ask to check the latest new emails from school in chat, then run the full workflow mnually
+
+### Explain more details
+
+After recieving the summary, user can ask questions about more details for some specified emails
+Then follow this steps.
+
+- use the email title of the specified mail to search DB
+
+```
+sqlite3 ~/.openclaw/workspace/school_mail_monitor.db "SELECT message_id from processed_email WHERE subject LIKE %<email_title>%;"
+```
+
+- get the content of the target mail by using `gog`
+
+```
+gog gmail get <message_id> --json --account $GOG_ACCOUNT
+```
+
+- then based on the email content explain user's questions

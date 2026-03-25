@@ -15,7 +15,7 @@ echo "   Skill installed to $SKILL_DIR"
 echo "Restart OpenClaw:"
 systemctl --user restart openclaw-gateway
 
-echo "6. In Slack, send 'new' to start a fresh session"
+echo "In Slack, send 'new' to start a fresh session"
 echo "   Then test with: 'Check school emails'"
 echo ""
 echo "=== Deploy Complete ==="
