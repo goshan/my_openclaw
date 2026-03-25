@@ -5,7 +5,7 @@ echo "=== School Mail Monitor Deploy ==="
 echo ""
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" &> /dev/null && pwd)
-SKILL_DIR="$HOME/.openclaw/skills/school-mail-monitor"
+SKILL_DIR="$HOME/.openclaw/workspace/skills/school-mail-monitor"
 
 echo "Installing skill..."
 mkdir -p "$SKILL_DIR"
