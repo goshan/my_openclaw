@@ -16,7 +16,7 @@ echo "   Skill installed to $SKILL_DIR"
 # 2. Initialize database
 echo ""
 echo "2. Initializing database..."
-bash "$SKILL_DIR/scripts/init_db.sh"
+bash "$SCRIPT_DIR/bin/init_db.sh"
 
 # 3. Remind about Slack channel ID
 echo ""
