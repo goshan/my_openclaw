@@ -11,7 +11,6 @@ SKILL_DIR="$HOME/.openclaw/skills/school-mail-monitor"
 echo "1. Installing skill..."
 mkdir -p "$SKILL_DIR"
 cp "$SCRIPT_DIR/../SKILL.md" "$SKILL_DIR/SKILL.md"
-chmod +x "$SKILL_DIR/scripts/init_db.sh"
 echo "   Skill installed to $SKILL_DIR"
 
 # 2. Initialize database
