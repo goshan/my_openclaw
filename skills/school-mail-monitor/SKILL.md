@@ -11,7 +11,6 @@ metadata:
       bins:
         - sqlite3
         - gog
-        - mail_fetch
 ---
 
 # School Mail Monitor
@@ -47,7 +46,7 @@ Location: `~/.openclaw/workspace/emails/<message_id>.json`
 ### Step 1: Fetch all new emails
 
 ```bash
-mail_fetch
+~/.openclaw/workspace/skills/school-mail-monitor/bins/mail_fetch
 ```
 
 This script will do the following steps
@@ -73,7 +72,7 @@ From: [sender name and email]
 Date: [received date]
 
 📝 Summary
-[2-4 sentence summary of the email body in the CHINESE.
+[2-4 sentence summary of the email body in the **CHINESE**.
 Translate the email body If the email is in English or Japanese.]
 
 ⚡ Actions Required
