@@ -148,8 +148,9 @@ if the request comes from user chat, send message to that channel, if it's a cro
 "
 ```
 
-If no new emails found, do NOT send a message to Slack for cron job(skip silently).
-But if this workflow triggered by user chat, then tell user no new emails
+Attention:
+- Cron-triggered scans: Only announce when there's something new to report. No need message if no new emails found(skip silently)
+- User-initiated checks: Always respond to the user directly (whenever in DM or channel) with "no new emails" or the report.
 
 ---
 
