@@ -11,7 +11,11 @@ echo "start to fetch at $new_time"
 
 # loop all senders from args
 for from in "$@"; do
-  last_time=$(sqlite3 $DB_PATH "SELECT last_scan_time FROM scan_state WHERE sender = '$from';")
+  last_time=$(sqlite3 $DB_PATH "SELECT last_scan_time FROM scan_state WHERE sender = '$from' LIMIT 1;")
+  if [[ -z "$last_time" ]]; then
+    # default fech from 3 days ago
+    last_time=$(date -d "-3 days" +"%Y/%m/%d %H:%M:%S")
+  fi
   last_day=$(date -d "$last_time" +"%Y/%m/%d")
   echo "checking mails from:$from after:$last_day" 
 
