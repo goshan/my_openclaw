@@ -18,7 +18,7 @@ chmod +x "$SKILL_DIR/bins/mail_extract"
 echo "   Skill installed to $SKILL_DIR"
 
 echo "Reinstall Cron"
-openclaw cron remove $(cat "$SCRIPT_DIR/../tmp/cron_id")
+openclaw cron remove $(cat "$SCRIPT_DIR/../tmp/cron_id") --json
 openclaw cron add \
   --name "Check school emails" \
   --cron "0 8,12,18,22 * * *" \
@@ -28,6 +28,7 @@ openclaw cron add \
   --announce \
   --channel slack \
   --to "channel:$channel_id" \
+  --json \
   | jq -r '.id' > "$SCRIPT_DIR/../tmp/cron_id"
 
 echo "Restart OpenClaw"
