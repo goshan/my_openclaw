@@ -33,10 +33,7 @@ echo "   Then update the cron job below with the actual channel ID."
 echo ""
 
 # 4. Cron job
-echo "4. Set up cron job (slack CHANNEL_ID is required in this step)"
-printf "slack CHANNEL_ID: "
-read -r channel_id
-
+echo "4. Set up cron job"
 mkdir -p "$SCRIPT_DIR/../tmp"
 openclaw cron add \
   --name "Check school emails" \
@@ -46,7 +43,8 @@ openclaw cron add \
   --message "Check for new school emails using the school-mail-monitor skill. Search Gmail for emails from m@mail1.veracross.com and @issh.ac.jp since the last scan time stored in the database. For each new email: summarize it, extract action items, and format per the skill instructions. Send the formatted report to Slack #mail-report channel ($channel_id). Update the scan state after processing." \
   --announce \
   --channel slack \
-  --to "channel:$channel_id" \
+  --to "channel:$(cat "$SCRIPT_DIR/../env/channel_id")" \
+  --json \
   | jq -r '.id' > "$SCRIPT_DIR/../tmp/cron_id"
 
 # 5. Restart
