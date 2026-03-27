@@ -38,7 +38,7 @@ id (always 1), last_scan_time
 ## Email Content file
 
 Record all processed email full content as text file
-Location: `~/.openclaw/workspace/emails/school_mail_monitor/<message_id>.txt`
+Location: `~/.openclaw/workspace/emails/<message_id>.txt`
 
 ---
 
@@ -47,7 +47,7 @@ Location: `~/.openclaw/workspace/emails/school_mail_monitor/<message_id>.txt`
 ### Step 1: Fetch all new emails
 
 ```bash
-bash ~/.openclaw/workspace/skills/school-mail-monitor/scripts/mail_fetch.sh
+mail_fetch
 ```
 
 This script will do the following steps
@@ -57,13 +57,13 @@ This script will do the following steps
 - for each new email
   - print new email id
   - insert the metadata like id, subject, sender, received_at database `processed_emails`
-  - save email body as a text file under folder `~/.openclaw/workspace/emails/school_mail_monitor`, use message_id as the file name
+  - save email body as a text file under folder `~/.openclaw/workspace/emails/`, use message_id as the file name
 - update `last_scan_time` to the current time, so that next time the script continue the work
 
 ### Step 2: Reformat each email
 
 For each email, we have already known the mail id from Step 1, 
-so we need to get the full email content from file `~/.openclaw/workspace/emails/school_mail_monitor/<message_id>.txt`,
+so we need to get the full email content from file `~/.openclaw/workspace/emails/<message_id>.txt`,
 then produce a formatted summary following this structure:
 
 ```
@@ -141,10 +141,13 @@ If no new emails found, tell user for chat, do NOT send a message to Slack for c
 User can also ask questions directly in chat
 
 - "Check school emails" -> User can ask to check the latest new emails from school in chat, then run the full workflow mnually
-- "Explain more details for a summarized mail" -> Checking the extracted email content, give more details to user based on questions, if there is no content found in cache or history, then you can search the database by subject to get email id, then read the cotent from file again. 
-  - An example is: if user ask a question about the first email in the summary
+- "Explain more details for a summarized mail"
+  - Checking the extracted email content, give more details to user based on questions
+  - if there is no content found in cache or history, then:
     - Check cache and history, if found, then use it to give more details to user
     - Otherwise,
       - Search database by subject to get the email_id. `sqlite3 ~/.openclaw/workspace/databases/school_mail_monitor.db "SELECT message_id FROM processed_emails WHERE subject LIKE '%<subject>%';"`
-      - Read file `~/.openclaw/workspace/emails/school_mail_monitor/<message_id>.txt` to get mail full content
+      - Read file `~/.openclaw/workspace/emails/<message_id>.txt` to get mail full content
       - Then anwser user's question based on the mail content
+  - If the mail content file doesn't exist in `~/.openclaw/workspace/emails`, then use `gog gmail get <message_id> --account $GOG_ACCOUNT` to get full content again.
+

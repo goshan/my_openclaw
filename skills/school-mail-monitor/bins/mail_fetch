@@ -2,7 +2,7 @@
 set -e
 
 DB_PATH="$HOME/.openclaw/workspace/databases/school_mail_monitor.db"
-MAIL_PATH="$HOME/.openclaw/workspace/emails/school_mail_monitor"
+MAIL_PATH="$HOME/.openclaw/workspace/emails"
 SKILL_DIR="$HOME/.openclaw/workspace/skills/school-mail-monitor"
 
 # fetch last execution time

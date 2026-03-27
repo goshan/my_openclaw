@@ -19,8 +19,9 @@ echo "   Skill installed to $SKILL_DIR"
 # 2. Initialize database
 echo ""
 echo "2. Initializing database..."
+mkdir -p "$HOME/.openclaw/workspace/databases"
 bash "$SCRIPT_DIR/init_db.sh"
-mkdir -p "$HOME/.openclaw/workspace/emails/school_mail_monitor"
+mkdir -p "$HOME/.openclaw/workspace/emails"
 
 # 3. Remind about Slack channel ID
 echo ""
