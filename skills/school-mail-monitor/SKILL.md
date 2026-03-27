@@ -74,7 +74,7 @@ Usage: sqlite3_exec <database_file> <query_text> <arg1> <arg2> ...
 ## Database
 
 Record processed emails metadata
-Location: `$OPENCLAW_CONFIG_HOME/data/mail_monitor.db`
+Location: `$OPENCLAW_CONFIG_HOME/data/mails_monitor.db`
 
 ### Tables
 
