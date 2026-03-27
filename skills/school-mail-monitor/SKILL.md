@@ -105,7 +105,7 @@ $OPENCLAW_CONFIG_HOME/bins/mail_fetch "m@mail1.veracross.com"
 $OPENCLAW_CONFIG_HOME/bins/mail_fetch "@issh.ac.jp"
 ```
 
-Attention: If no new email found from the above 2 commands, that's normal, even there might be some mail content files in `/tmp`, that might be the output of previous execution. No need to expand search period to try to fetch more. Just skil step 2 and execute step 3 directly.
+Attention: Don't search mail content text files under `/tmp`, there might be some files generated from previous executions. So only use the output of `mail_fetch` to verify if there is new mail.
 
 ### Step 2: Reformat each email and send to slack
 
