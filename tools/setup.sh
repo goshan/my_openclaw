@@ -10,8 +10,7 @@ SKILL_DIR="$HOME/.openclaw/workspace/skills"
 # Create folders
 echo "create new folders"
 mkdir -p $SKILL_DIR
-mkdir -p "$HOME_DIR/databases"
-mkdir -p "$HOME_DIR/mails"
+mkdir -p "$HOME_DIR/data"
 mkdir -p "$HOME_DIR/tmp"
 
 echo ""

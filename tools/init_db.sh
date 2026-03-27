@@ -1,7 +1,7 @@
 #!/bin/bash
 
 HOME_DIR=$(cd "$(dirname "$0")/.." &> /dev/null && pwd)
-MAIL_DB_PATH="$HOME_DIR/databases/mails_monitor.db"
+MAIL_DB_PATH="$HOME_DIR/data/mails_monitor.db"
 
 echo "=== Init DB ==="
 echo ""

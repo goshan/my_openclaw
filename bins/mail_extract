@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-mail-extract: Extract readable text from a Gmail message JSON file.
-Usage: mail-extract <input.json> [output.txt]
+mail_extract: Extract readable text from a Gmail message JSON file.
+Usage: mail_extract <input.json> [output.txt]
   If output.txt is omitted, prints to stdout.
 """
 

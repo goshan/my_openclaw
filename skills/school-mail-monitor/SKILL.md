@@ -33,10 +33,46 @@ Monitor and summarize emails from school-related senders, then deliver formatted
 - PTA/parent communications
 - Schedule changes
 
+## Scripts
+
+Scripts that will be used in this skill
+Location: `$OPENCLAW_CONFIG_HOME/bins`
+
+### mail_fetch
+
+Fetch new messages in my Gmail account with a provided mail sender, also manaage a database for processed mail deduplication and continous work without overlap time
+Usage: mail_fetch <sender>, this <sender> doesn't need to be a full mail address, it can be part of address, ex. a postfix from `@` like `@gmail.com`, etc
+
+For inputed email sender, this script will do the following steps
+- get the `last_scan_time` from database
+- fetch all new emails from the sender after `last_scan_date`
+- for each fetched email, check database `processed_emails` for deduplication
+- for each new email
+  - print new email id
+  - insert the metadata like id, subject, sender, received_at database `processed_emails`
+  - run script `mail_extract` to extract mail text from json format and convert html into text
+  - save the extracted email content as a text file to `/tmp/<message_id>.txt`
+- update `last_scan_time` to the current time, so that next time we can continue from new emails for the specified sender
+
+Notes: max fetching number of mails for each sender is: 20
+
+### mail_extract
+
+Extract readable text from a Gmail message JSON file.
+Usage: mail_extract <input.json> [output.txt]
+  If output.txt is omitted, prints to stdout.
+
+### sqlite3_exec
+
+Execute query in sqlite3 with proper charater escape handling
+Usage: sqlite3_exec <database_file> <query_text> <arg1> <arg2> ...
+  <query_holder> uses `?` as argument holder, example: 'INSERT OR IGNORE INTO processed_emails (message_id, subject, sender, received_at) VALUES (?, ?, ?, ?)'
+  the number of remaining arguments should be equal to `?` in query_holder
+
 ## Database
 
 Record processed emails metadata
-Location: `$OPENCLAW_CONFIG_HOME/databases/school_mail_monitor.db`
+Location: `$OPENCLAW_CONFIG_HOME/data/school_mail_monitor.db`
 
 ### Tables
 
@@ -53,8 +89,8 @@ record the last scan time per each email sender
 
 ## Email Content file
 
-Record all processed email full content as text file
-Location: `$OPENCLAW_CONFIG_HOME/mails/<message_id>.text`
+Record all processed email full content as text file under `/tmp`
+Location: `/tmp/<message_id>.txt`
 
 ---
 
@@ -63,24 +99,14 @@ Location: `$OPENCLAW_CONFIG_HOME/mails/<message_id>.text`
 ### Step 1: Fetch all new emails
 
 ```bash
-$OPENCLAW_CONFIG_HOME/bins/mail_fetch "m@mail1.veracross.com" "@issh.ac.jp"
+$OPENCLAW_CONFIG_HOME/bins/mail_fetch "m@mail1.veracross.com"
+$OPENCLAW_CONFIG_HOME/bins/mail_fetch "@issh.ac.jp"
 ```
-
-For each inputed email sender, this script will do the following steps
-- get the `last_scan_time` from database
-- fetch all new emails from the sender after `last_scan_date`
-- for each fetched email, check database `processed_emails` for duplication
-- for each new email
-  - print new email id
-  - insert the metadata like id, subject, sender, received_at database `processed_emails`
-  - run script `mail_extract` to extract mail text from json format and convert html into text
-  - save the extracted email content as a text file under folder `$OPENCLAW_CONFIG_HOME/mails/`, use message_id as the file name
-- update `last_scan_time` to the current time, so that next time we continue from new emails for specified sender
 
 ### Step 2: Reformat each email
 
 For each email, we have already known the mail id from Step 1, 
-so we need to get the full email content from file `$OPENCLAW_CONFIG_HOME/mails/<message_id>.txt`,
+so we need to get the full email content from file `/tmp/<message_id>.txt`,
 then produce a formatted summary following this structure:
 
 ```
@@ -144,7 +170,7 @@ User can also ask questions directly in chat
 
 - "Check school emails" -> User can ask to check the latest new emails from school in chat, then run the full workflow mnually
 - "Explain more details for a summarized mail"
-  - Read file `$OPENCLAW_CONFIG_HOME/mails/<message_id>.txt` to get mail full content again
+  - Read file `/tmp/<message_id>.txt` to get mail full content again
   - Then anwser user's question based on the mail content
-  - If the mail content file doesn't exist in `$OPENCLAW_CONFIG_HOME/mails`, then use `gog gmail get <message_id> --account $GOG_ACCOUNT` to get full content again.
+  - If the mail content file doesn't exist, then use `gog gmail get <message_id> --account $GOG_ACCOUNT`, and `$OPENCLAW_CONFIG_HOME/bins/mail_extract <gmail_json_content_file>.json <gmail_text_content_file>.txt` to get full content again.
 
