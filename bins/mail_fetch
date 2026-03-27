@@ -7,6 +7,7 @@
 set -e
 
 HOME_DIR=$(cd "$(dirname "$0")/.." &> /dev/null && pwd)
+BIN_DIR="$HOME_DIR/bins"
 DB_PATH="$HOME_DIR/data/mails_monitor.db"
 
 sender=$1
@@ -41,11 +42,11 @@ gog gmail messages search "from:$sender after:$last_day" --max 20 --json --accou
 
   # insert to processed_emails table
   query="INSERT OR IGNORE INTO processed_emails (message_id, subject, sender, received_at) VALUES (?, ?, ?, ?)"
-  $BIN_DIR/sqlite3_exec $DB_PATH $query $message_id $message_subject $message_sender $message_date
+  $BIN_DIR/sqlite3_exec "$DB_PATH" "$query" "$message_id" "$message_subject" "$message_sender" "$message_date"
   # save email content to file
-  echo $message_content > "/tmp/gmail_$message_id.json"
+  echo $message_content > "/tmp/$message_id.json"
   python3 $BIN_DIR/mail_extract "/tmp/$message_id.json" "/tmp/$message_id.txt"
 done
 
 # update last_scan_time
-$BIN_DIR/sqlite3_exec $DB_PATH "UPDATE scan_state SET last_scan_time = ? WHERE sender = ?", $new_time, $sender
+$BIN_DIR/sqlite3_exec "$DB_PATH" "UPDATE scan_state SET last_scan_time = ? WHERE sender = ?", "$new_time" "$sender"
