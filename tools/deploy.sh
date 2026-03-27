@@ -43,7 +43,7 @@ cat $HOME_DIR/config.json | jq -c '.cron.jobs[]' | while read -r job; do
     --json \
     | jq -r '.id' > "$HOME_DIR/tmp/cron_id_$name"
 done
-echo "Cron re-installed"
+echo "Cron installed"
 echo ""
 
 echo "Restart OpenClaw"
