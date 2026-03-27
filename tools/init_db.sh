@@ -17,8 +17,7 @@ CREATE TABLE IF NOT EXISTS processed_emails (
 );
 
 CREATE TABLE IF NOT EXISTS scan_state (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
-  sender TEXT NOT NULL,
+  sender TEXT PRIMARY KEY,
   last_scan_time TEXT NOT NULL
 );
 SQL

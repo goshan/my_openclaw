@@ -48,5 +48,5 @@ gog gmail messages search "from:$sender after:$last_day" --max 20 --json --accou
   python3 $BIN_DIR/mail_extract "/tmp/$message_id.json" "/tmp/$message_id.txt"
 done
 
-# update last_scan_time
-$BIN_DIR/sqlite3_exec "$DB_PATH" "UPDATE scan_state SET last_scan_time = ? WHERE sender = ?", "$new_time" "$sender"
+# update last_scan_time (upsert)
+$BIN_DIR/sqlite3_exec "$DB_PATH" "INSERT OR REPLACE INTO scan_state (sender, last_scan_time) VALUES (?, ?)" "$sender" "$new_time"
