@@ -1,8 +1,12 @@
 #!/bin/bash
 
-DB_PATH="${HOME}/.openclaw/workspace/databases/school_mail_monitor.db"
+HOME_DIR=$(cd "$(dirname "$0")/.." &> /dev/null && pwd)
+MAIL_DB_PATH="$HOME_DIR/databases/mails_monitor.db"
 
-sqlite3 "$DB_PATH" << 'SQL'
+echo "=== Init DB ==="
+echo ""
+
+sqlite3 "$MAIL_DB_PATH" << 'SQL'
 CREATE TABLE IF NOT EXISTS processed_emails (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   message_id TEXT NOT NULL UNIQUE,
@@ -14,13 +18,9 @@ CREATE TABLE IF NOT EXISTS processed_emails (
 
 CREATE TABLE IF NOT EXISTS scan_state (
   id INTEGER PRIMARY KEY CHECK (id = 1),
+  sender TEXT NOT NULL,
   last_scan_time TEXT NOT NULL
 );
-
--- Initialize last_scan_time to 7 days ago
-INSERT OR IGNORE INTO scan_state (id, last_scan_time)
-  VALUES (1, datetime('now', '-3 days', 'localtime'));
 SQL
 
-echo "Database initialized at $DB_PATH"
-sqlite3 "$DB_PATH" "SELECT * FROM scan_state;"
+echo "Database initialized at $MAIL_DB_PATH"

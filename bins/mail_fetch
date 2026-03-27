@@ -1,19 +1,18 @@
 #!/bin/bash
 set -e
 
-DB_PATH="$HOME/.openclaw/workspace/databases/school_mail_monitor.db"
-MAIL_PATH="$HOME/.openclaw/workspace/emails"
-BIN_DIR=$(cd -- "$(dirname -- "$0")" &> /dev/null && pwd)
+HOME_DIR=$(cd "$(dirname "$0")/.." &> /dev/null && pwd)
+DB_PATH="$HOME_DIR/databases/mails_monitor.db"
+MAIL_DIR="$HOME_DIR/mails"
 
 # fetch last execution time
 new_time=$(date +"%Y-%m-%d %H:%M:%S")
-last_time=$(sqlite3 $DB_PATH "SELECT last_scan_time FROM scan_state WHERE id = 1;")
-last_day=$(date -d "$last_time" +"%Y/%m/%d")
-echo "last_scan_day: $last_day"
+echo "start to fetch at $new_time"
 
-# target mail senders
-froms=("m@mail1.veracross.com" "@issh.ac.jp")
-for from in "${froms[@]}"; do
+# loop all senders from args
+for from in "$@"; do
+  last_time=$(sqlite3 $DB_PATH "SELECT last_scan_time FROM scan_state WHERE sender = '$from';")
+  last_day=$(date -d "$last_time" +"%Y/%m/%d")
   echo "checking mails from:$from after:$last_day" 
 
   # fech new emails
@@ -39,8 +38,7 @@ for from in "${froms[@]}"; do
     python3 $BIN_DIR/mail_extract "$MAIL_PATH/$message_id.json" "$MAIL_PATH/$message_id.txt"
     rm "$MAIL_PATH/$message_id.json"
   done
-done
 
-# update last_scan_time
-echo "update last_scan_time to $new_time"
-sqlite3 $DB_PATH "UPDATE scan_state SET last_scan_time = '$new_time' WHERE id = 1;"
+  # update last_scan_time
+  sqlite3 $DB_PATH "UPDATE scan_state SET last_scan_time = '$new_time' WHERE sender = '$from';"
+done

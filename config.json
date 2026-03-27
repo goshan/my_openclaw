@@ -1,0 +1,15 @@
+{
+  "skills": [
+    "school-mail-monitor"
+  ],
+  "cron": {
+    "slack_channel_id": "C0APJPJR2MN",
+    "jobs": [
+      {
+        "name": "check_school_emails",
+        "schedule": "0 8,12,18,22 * * *",
+        "message": "Check for new school emails using the school-mail-monitor skill. Follow the workflow in the skill instructions to search emails from the target 2 school senders and make summary. Because the skill has specified how to send the summary to channels, so just follow that instruction, no need to send other information."
+      }
+    ]
+  }
+}

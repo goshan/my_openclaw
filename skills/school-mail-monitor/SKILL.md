@@ -17,10 +17,26 @@ metadata:
 
 Monitor and summarize emails from school-related senders, then deliver formatted reports to Slack.
 
+## Common Email Types from These Senders
+
+**Veracross (m@mail1.veracross.com):**
+- School announcements and newsletters
+- Event notifications
+- Grade/progress reports
+- Attendance notices
+- System notifications
+
+**ISSH (@issh.ac.jp):**
+- Teacher communications
+- Administrative notices
+- Event/activity announcements
+- PTA/parent communications
+- Schedule changes
+
 ## Database
 
 Record processed emails metadata
-Location: `~/.openclaw/workspace/databases/school_mail_monitor.db`
+Location: `$OPENCLAW_CONFIG_HOME/databases/school_mail_monitor.db`
 
 ### Tables
 
@@ -31,13 +47,14 @@ id, message_id (UNIQUE), subject, sender, received_at, processed_at
 
 **scan_state** — remembers where we left off
 ```sql
-id (always 1), last_scan_time
+id, sender, last_scan_time
 ```
+record the last scan time per each email sender
 
 ## Email Content file
 
 Record all processed email full content as text file
-Location: `~/.openclaw/workspace/emails/<message_id>.text`
+Location: `$OPENCLAW_CONFIG_HOME/mails/<message_id>.text`
 
 ---
 
@@ -46,24 +63,24 @@ Location: `~/.openclaw/workspace/emails/<message_id>.text`
 ### Step 1: Fetch all new emails
 
 ```bash
-~/.openclaw/workspace/skills/school-mail-monitor/bins/mail_fetch
+$OPENCLAW_CONFIG_HOME/bins/mail_fetch "m@mail1.veracross.com" "@issh.ac.jp"
 ```
 
-This script will do the following steps
+For each inputed email sender, this script will do the following steps
 - get the `last_scan_time` from database
-- fetch all new emails from "m@mail1.veracross.com", "@issh.ac.jp" after `last_scan_date`
+- fetch all new emails from the sender after `last_scan_date`
 - for each fetched email, check database `processed_emails` for duplication
 - for each new email
   - print new email id
   - insert the metadata like id, subject, sender, received_at database `processed_emails`
   - run script `mail_extract` to extract mail text from json format and convert html into text
-  - save the extracted email content as a text file under folder `~/.openclaw/workspace/emails/`, use message_id as the file name
-- update `last_scan_time` to the current time, so that next time the script continue the work
+  - save the extracted email content as a text file under folder `$OPENCLAW_CONFIG_HOME/mails/`, use message_id as the file name
+- update `last_scan_time` to the current time, so that next time we continue from new emails for specified sender
 
 ### Step 2: Reformat each email
 
 For each email, we have already known the mail id from Step 1, 
-so we need to get the full email content from file `~/.openclaw/workspace/emails/<message_id>.txt`,
+so we need to get the full email content from file `$OPENCLAW_CONFIG_HOME/mails/<message_id>.txt`,
 then produce a formatted summary following this structure:
 
 ```
@@ -81,10 +98,10 @@ Translate the email body If the email is in English or Japanese.]
 If none, write "No action required."]
 ```
 
-### Step 3: Send to Slack #mail-report
+### Step 3: Send to Slack Channel
 
 Combine all formatted email summaries into one message and send to the Slack channel using the `message` tool:
-if the request comes from chat, send message to that channel, if it's a cron job, send message to the channel specified by cron setting `--to "channel:CHANNEL_ID"`.
+if the request comes from user chat, send message to that channel, if it's a cron job, send message to the channel specified by cron setting `--to "channel:<CHANNEL_ID>"`.
 
 ```
 🏫 School Email Report — [today's date]
@@ -101,7 +118,8 @@ if the request comes from chat, send message to that channel, if it's a cron job
 "
 ```
 
-If no new emails found, tell user for chat, do NOT send a message to Slack for cron job(skip silently).
+If no new emails found, do NOT send a message to Slack for cron job(skip silently).
+But if this workflow triggered by user chat, then tell user no new emails
 
 ---
 
@@ -111,23 +129,7 @@ If no new emails found, tell user for chat, do NOT send a message to Slack for c
 - **Length**: Keep summaries concise — 2-4 sentences max.
 - **Actions**: Be specific about deadlines. Example: "Submit permission form by March 28" not "There is a form to submit."
 - **Multiple emails**: Group them in one Slack message, separated by blank lines and dividers.
-- **HTML emails**: Many school emails are HTML-heavy. Focus on extracting the actual text content and ignore HTML formatting, headers, footers, and tracking pixels.
-
-## Common Email Types from These Senders
-
-**Veracross (m@mail1.veracross.com):**
-- School announcements and newsletters
-- Event notifications
-- Grade/progress reports
-- Attendance notices
-- System notifications
-
-**ISSH (@issh.ac.jp):**
-- Teacher communications
-- Administrative notices
-- Event/activity announcements
-- PTA/parent communications
-- Schedule changes
+- **HTML emails**: Many school emails are HTML-heavy. `mail_fetch` script has already extract the text from json and convert html to plain text. No need to parse html any more.
 
 ## Error Handling
 
@@ -142,12 +144,7 @@ User can also ask questions directly in chat
 
 - "Check school emails" -> User can ask to check the latest new emails from school in chat, then run the full workflow mnually
 - "Explain more details for a summarized mail"
-  - Checking the extracted email content, give more details to user based on questions
-  - if there is no content found in cache or history, then:
-    - Check cache and history, if found, then use it to give more details to user
-    - Otherwise,
-      - Search database by subject to get the email_id. `sqlite3 ~/.openclaw/workspace/databases/school_mail_monitor.db "SELECT message_id FROM processed_emails WHERE subject LIKE '%<subject>%';"`
-      - Read file `~/.openclaw/workspace/emails/<message_id>.txt` to get mail full content
-      - Then anwser user's question based on the mail content
-  - If the mail content file doesn't exist in `~/.openclaw/workspace/emails`, then use `gog gmail get <message_id> --account $GOG_ACCOUNT` to get full content again.
+  - Read file `$OPENCLAW_CONFIG_HOME/mails/<message_id>.txt` to get mail full content again
+  - Then anwser user's question based on the mail content
+  - If the mail content file doesn't exist in `$OPENCLAW_CONFIG_HOME/mails`, then use `gog gmail get <message_id> --account $GOG_ACCOUNT` to get full content again.
 
