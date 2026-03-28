@@ -21,13 +21,13 @@ new_count=0
 for sender in  "$@"; do
   last_time=$(sqlite3 $DB_PATH "SELECT last_scan_time FROM scan_state WHERE sender = '$sender' LIMIT 1;")
   if [[ -z "$last_time" ]]; then
-    # default fech from 3 days ago
-    last_time=$(date -d "-3 days" +"%Y/%m/%d %H:%M:%S")
+    # default fech from 5 days ago
+    last_time=$(date -d "-5 days" +"%Y/%m/%d %H:%M:%S")
   fi
   last_day=$(date -d "$last_time" +"%Y/%m/%d")
 
   # fech new emails
-  gog gmail messages search "from:$sender after:$last_day" --max 20 --json --account $GOG_ACCOUNT | jq -c '.messages[]' | while read -r item; do
+  while read -r item; do
     message_id=$(echo $item | jq -r '.id')
     # skip if already processed before
     processed=$(sqlite3 $DB_PATH "SELECT COUNT(*) FROM processed_emails WHERE message_id = '$message_id';")
@@ -43,18 +43,18 @@ for sender in  "$@"; do
 
     # save email content to file
     echo $message_content > "$TMP_DIR/$message_id.json"
-    python3 $TOOLS_DIR/mail/mail_extract "$TMP_DIR/$message_id.json" "$TMP_DIR/$message_id.txt"
+    python3 $TOOLS_DIR/mail/mail_extract "$TMP_DIR/$message_id.json" "$TMP_DIR/$message_id.txt" > /dev/null 2>&1
 
     # insert to processed_emails table
     query="INSERT OR IGNORE INTO processed_emails (message_id, subject, sender, received_at) VALUES (?, ?, ?, ?)"
     $TOOLS_DIR/database/sqlite3_exec "$DB_PATH" "$query" "$message_id" "$message_subject" "$message_sender" "$message_date"
 
-    # update last_scan_time (upsert)
-    $TOOLS_DIR/database/sqlite3_exec "$DB_PATH" "INSERT OR REPLACE INTO scan_state (sender, last_scan_time) VALUES (?, ?)" "$sender" "$new_time"
-
     # update counter
     new_count=$((new_count + 1))
-  done
+  done < <(gog gmail messages search "from:$sender after:$last_day" --max 20 --json --account $GOG_ACCOUNT | jq -c '.messages[]')
+
+  # update last_scan_time (upsert)
+  $TOOLS_DIR/database/sqlite3_exec "$DB_PATH" "INSERT OR REPLACE INTO scan_state (sender, last_scan_time) VALUES (?, ?)" "$sender" "$new_time"
 done
 
 # Output result
