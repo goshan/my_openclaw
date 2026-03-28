@@ -53,7 +53,7 @@ Location: `$OPENCLAW_CONFIG_HOME/tools/mail_fetch`
 ### Step 1: Run the script
 
 ```bash
-$OPENCLAW_CONFIG_HOME/bins/mail_fetch "m@mail1.veracross.com" "@issh.ac.jp"
+$OPENCLAW_CONFIG_HOME/tools/mail/mail_fetch "m@mail1.veracross.com" "@issh.ac.jp"
 ```
 
 This fetches all new emails sent by "m@mail1.veracross.com" and "@issh.ac.jp" after last fetch date, deduplicates, and output clean content text to stdout.
@@ -110,7 +110,6 @@ If the request comes from user chat, send message to that channel, if it's a cro
 User can also ask questions directly in chat
 
 - "Check school emails" -> User can ask to check the latest new emails from school in chat, then run the full workflow mnually
-- "Explain more details for a summarized mail"
+- "Explain more details for a summarized mail" -> Anwser user's question based on this content of plain text file. If you lost the extracted email content, you can use the following steps to re-fetch
   - Fetch mail content by `gog gmail get <message_id> --account $GOG_ACCOUNT` and save it to a json file.
   - extract the json to a plain text by `$OPENCLAW_CONFIG_HOME/tools/mail/mail_extract <gmail_json_file>.json <plain_text_content_file>.txt`
-  - Then anwser user's question based on this content of plain text file
