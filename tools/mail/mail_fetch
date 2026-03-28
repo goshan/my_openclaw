@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# mail_fetch: fetch new messages in my Gmail account with a provided mail sender list, also manaage a database to save processed mails for deduplication
+# Usage: mail_fetch <sender1> <sender2> ...
+# These <sender>s don't need to be a full mail address, it can be part of address, ex. a postfix from `@` like `@gmail.com`, etc
+# Notes: max fetching number is: 20
+
+set -e
+
+HOME_DIR=$(cd "$(dirname "$0")/../.." &> /dev/null && pwd)
+TOOLS_DIR="$HOME_DIR/tools"
+DB_PATH="$HOME_DIR/data/mails_monitor.db"
+TMP_DIR=$(mktemp -d)
+
+# fetch last execution time
+new_time=$(date +"%Y-%m-%d %H:%M:%S")
+
+
+# loop for each sender
+new_count=0
+for sender in  "$@"; do
+  last_time=$(sqlite3 $DB_PATH "SELECT last_scan_time FROM scan_state WHERE sender = '$sender' LIMIT 1;")
+  if [[ -z "$last_time" ]]; then
+    # default fech from 3 days ago
+    last_time=$(date -d "-3 days" +"%Y/%m/%d %H:%M:%S")
+  fi
+  last_day=$(date -d "$last_time" +"%Y/%m/%d")
+
+  # fech new emails
+  gog gmail messages search "from:$sender after:$last_day" --max 20 --json --account $GOG_ACCOUNT | jq -c '.messages[]' | while read -r item; do
+    message_id=$(echo $item | jq -r '.id')
+    # skip if already processed before
+    processed=$(sqlite3 $DB_PATH "SELECT COUNT(*) FROM processed_emails WHERE message_id = '$message_id';")
+    if [ "$processed" -gt 0 ]; then
+      continue
+    fi
+
+    # fetch mail details
+    message_content=$(gog gmail get $message_id --json --account $GOG_ACCOUNT)
+    message_subject=$(echo $message_content | jq -r '.headers.subject' | sed "s/'/\\\\'/g")
+    message_sender=$(echo $message_content | jq -r '.headers.from' | sed "s/'/\\\\'/g")
+    message_date=$(echo $message_content | jq -r '.headers.date')
+
+    # save email content to file
+    echo $message_content > "$TMP_DIR/$message_id.json"
+    python3 $TOOLS_DIR/mail/mail_extract "$TMP_DIR/$message_id.json" "$TMP_DIR/$message_id.txt"
+
+    # insert to processed_emails table
+    query="INSERT OR IGNORE INTO processed_emails (message_id, subject, sender, received_at) VALUES (?, ?, ?, ?)"
+    $TOOLS_DIR/database/sqlite3_exec "$DB_PATH" "$query" "$message_id" "$message_subject" "$message_sender" "$message_date"
+
+    # update last_scan_time (upsert)
+    $TOOLS_DIR/database/sqlite3_exec "$DB_PATH" "INSERT OR REPLACE INTO scan_state (sender, last_scan_time) VALUES (?, ?)" "$sender" "$new_time"
+
+    # update counter
+    new_count=$((new_count + 1))
+  done
+done
+
+# Output result
+echo "=== MAIL FETCH RESULT ==="
+echo "New emails found: $new_count"
+echo ""
+
+
+if [ "$new_count" -eq 0 ]; then
+  echo "NO_NEW_EMAILS"
+else
+  for content_file in "$TMP_DIR"/*.txt; do
+    [ -f "$content_file" ] || continue
+    mail_id=$(basename "$content_file" .txt)
+    echo "=== EMAIL: $mail_id ==="
+    cat "$content_file"
+    echo ""
+  done
+fi
+
