@@ -13,6 +13,7 @@ import re
 
 def strip_html(html):
     """Convert HTML to readable plain text."""
+    html = re.sub(r'\r\n|\n\r|\r', '\n', html)
     text = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL)
     text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL)
     text = re.sub(r'<!--.*?-->', '', text, flags=re.DOTALL)
