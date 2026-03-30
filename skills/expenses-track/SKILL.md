@@ -158,6 +158,15 @@ Extract transaction fields based on this strategy
 
 Exactly the same command in MODE 1 Step 3
 
+### Step 4: Report to user
+
+Use this format
+
+```
+✅ Transaction Recorded: ¥1,500 at Lawson (PayPay) — Food
+```
+
+
 ---
 
 ## MODE 3: Manual Text Entry
@@ -182,11 +191,7 @@ Exactly the same command in MODE 1 Step 3
 
 ### Step 3: Report to user
 
-Use this format
-
-```
-✅ Recorded: ¥1,500 at Lawson (PayPay) — Food
-```
+Exactly the same as MODE 2 Step 4
 
 ---
 
