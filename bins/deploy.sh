@@ -10,8 +10,8 @@ HOME_DIR=$(cd "$(dirname "$0")/.." &> /dev/null && pwd)
 SKILL_DIR="$HOME/.openclaw/workspace/skills"
 CRONTAB_BAK="$HOME_DIR/tmp/crontab.bak"
 
-CRON_MARKER_START="# --- OPENCLAW MANAGED START (do not edit) ---"
-CRON_MARKER_END="# --- OPENCLAW MANAGED END ---"
+CRON_START="# --- OPENCLAW MANAGED START (do not edit) ---"
+CRON_END="# --- OPENCLAW MANAGED END ---"
 
 echo "Installing skills..."
 cat $HOME_DIR/deploy_config.json | jq -r '.skills[]' | while read -r skill; do
@@ -63,16 +63,18 @@ while read -r job; do
     task=$(echo $job | jq -r '.task')
 
     # Generate new managed block
-    crontab_managed+="$schedule /bin/bash -c 'source $env && $task'\\n"
+    crontab_managed+="$schedule /bin/bash -c 'source $env && $task'\n"
   fi
 done < <(cat $HOME_DIR/deploy_config.json | jq -c '.cron.jobs[]')
 
 crontab_new="$crontab_before
-$MARKER_START
+
+$CRONTAB_START
+
 $crontab_managed
-$MARKER_END
+$CRONTAB_END
 $crontab_after"
-echo "$crontab_new" | crontab -
+printf "$crontab_new" | crontab -
 
 echo "Cron installed"
 echo ""
