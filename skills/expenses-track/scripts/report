@@ -39,8 +39,6 @@ daily_report() {
     ORDER BY pm.id;
   ")
 
-  local yesterday_total=0
-
   if [ -z "$cards" ]; then
     echo "No expenses recorded yesterday. 🎉"
   else
@@ -49,12 +47,10 @@ daily_report() {
       emoji=$(card_emoji "$card")
       echo "${emoji} ${card}"
 
-      local subtotal=0
       while IFS='|' read -r store amount category; do
-        printf "  • %s — ¥%'.0f (%s)\n" "$store" "$amount" "$category"
-        subtotal=$(q "SELECT ${subtotal} + ${amount};")
+        echo "  • ${store} — ${amount} (${category})"
       done < <(q "
-        SELECT t.store, t.amount, t.category
+        SELECT t.store, printf('¥%,.0f', t.amount), t.category
         FROM transactions t
         JOIN payment_methods pm ON t.payment_method_id = pm.id
         WHERE t.date = strftime('$DATE_FORMAT', 'now', '-1 day', 'localtime')
@@ -62,14 +58,27 @@ daily_report() {
         ORDER BY t.amount DESC;
       ")
 
-      printf "  Subtotal: ¥%'.0f\n" "$subtotal"
+      local subtotal
+      subtotal=$(q "
+        SELECT printf('¥%,.0f', COALESCE(SUM(t.amount), 0))
+        FROM transactions t
+        JOIN payment_methods pm ON t.payment_method_id = pm.id
+        WHERE t.date = strftime('$DATE_FORMAT', 'now', '-1 day', 'localtime')
+          AND pm.name = '${card}';
+      ")
+      echo "  Subtotal: ${subtotal}"
       echo
-      yesterday_total=$(q "SELECT ${yesterday_total} + ${subtotal};")
     done <<< "$cards"
   fi
 
+  local yesterday_total
+  yesterday_total=$(q "
+    SELECT printf('¥%,.0f', COALESCE(SUM(amount), 0))
+    FROM transactions
+    WHERE date = strftime('$DATE_FORMAT', 'now', '-1 day', 'localtime');
+  ")
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  printf "💰 Yesterday Total: ¥%'.0f\n" "$yesterday_total"
+  echo "💰 Yesterday Total: ${yesterday_total}"
   echo
 
   # Month-to-date
@@ -77,17 +86,13 @@ daily_report() {
   month_name=$(date +"%B")
   echo "📊 Month-to-Date (${month_name})"
 
-  local month_grand=0
   while IFS='|' read -r card total; do
     local emoji
     emoji=$(card_emoji "$card")
-    printf "  %s %s: %s\n" "$emoji" "$card" "$total"
-    local raw
-    raw=$(q "SELECT REPLACE(REPLACE('${total}', '¥', ''), ',', '');")
-    month_grand=$(q "SELECT ${month_grand} + ${raw};")
+    echo "  ${emoji} ${card}: ${total}"
   done < <(q "
     SELECT pm.name,
-           printf('¥%,.0f', SUM(t.amount)) AS month_total
+           printf('¥%,.0f', SUM(t.amount))
     FROM transactions t
     JOIN payment_methods pm ON t.payment_method_id = pm.id
     WHERE t.date >= strftime('$DATE_FORMAT', 'now', 'start of month', 'localtime')
@@ -95,8 +100,14 @@ daily_report() {
     ORDER BY pm.id;
   ")
 
+  local month_grand
+  month_grand=$(q "
+    SELECT printf('¥%,.0f', COALESCE(SUM(amount), 0))
+    FROM transactions
+    WHERE date >= strftime('$DATE_FORMAT', 'now', 'start of month', 'localtime');
+  ")
   echo "  ━━━━━━━━━━━━━━━━━━"
-  printf "  📈 Accumulated Total: ¥%'.0f\n" "$month_grand"
+  echo "  📈 Accumulated Total: ${month_grand}"
 }
 
 monthly_report() {
