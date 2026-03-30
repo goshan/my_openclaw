@@ -142,8 +142,12 @@ Extract transaction fields based on this strategy
 - payment_method_id: if hard to detect, ask user directly instead of guessing by yourself
   - A regular receipt photo -> Cash
   - A Paypay app screenshot -> PayPay
-- date: convert the format to YYYY/MM/DD
 - store
+  - For a receipt, it's usually at the bottom or left bottom
+  - For PayPay, it at the top of the image, with an store icon
+- date: convert the format to YYYY/MM/DD
+  - For a receipt, it's usually in the top right side.
+  - For a PayPay screenshot, it's in the top, just under the store icon
 - amount: use the same rule as MODE 1 Step 2
 - category: use the same rule as MODE 1 Step 2
 - note: use the same rule as MODE 1 Step 2
