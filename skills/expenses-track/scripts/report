@@ -7,6 +7,8 @@ set -euo pipefail
 HOME_DIR=$(cd "$(dirname "$0")/../../.." &> /dev/null && pwd)
 DB="${HOME_DIR}/data/expense.db"
 
+DATE_FORMAT="%Y/%m/%d"
+
 q() { sqlite3 "$DB" "$1"; }
 
 card_emoji() {
@@ -33,7 +35,7 @@ daily_report() {
     SELECT DISTINCT pm.name
     FROM transactions t
     JOIN payment_methods pm ON t.payment_method_id = pm.id
-    WHERE t.date = date('now', '-1 day', 'localtime')
+    WHERE t.date = strftime('$DATE_FORMAT', 'now', '-1 day', 'localtime')
     ORDER BY pm.id;
   ")
 
@@ -55,7 +57,7 @@ daily_report() {
         SELECT t.store, t.amount, t.category
         FROM transactions t
         JOIN payment_methods pm ON t.payment_method_id = pm.id
-        WHERE t.date = date('now', '-1 day', 'localtime')
+        WHERE t.date = strftime('$DATE_FORMAT', 'now', '-1 day', 'localtime')
           AND pm.name = '${card}'
         ORDER BY t.amount DESC;
       ")
@@ -88,7 +90,7 @@ daily_report() {
            printf('¥%,.0f', SUM(t.amount)) AS month_total
     FROM transactions t
     JOIN payment_methods pm ON t.payment_method_id = pm.id
-    WHERE t.date >= date('now', 'start of month', 'localtime')
+    WHERE t.date >= strftime('$DATE_FORMAT', 'now', 'start of month', 'localtime')
     GROUP BY t.payment_method_id
     ORDER BY pm.id;
   ")
@@ -120,8 +122,8 @@ monthly_report() {
            printf('¥%,.0f', SUM(t.amount)) AS total
     FROM transactions t
     JOIN payment_methods pm ON t.payment_method_id = pm.id
-    WHERE t.date >= date('now', 'start of month', '-1 month', 'localtime')
-      AND t.date < date('now', 'start of month', 'localtime')
+    WHERE t.date >= strftime('$DATE_FORMAT', 'now', 'start of month', '-1 month', 'localtime')
+      AND t.date < strftime('$DATE_FORMAT', 'now', 'start of month', 'localtime')
     GROUP BY t.payment_method_id
     ORDER BY SUM(t.amount) DESC;
   ")
@@ -136,8 +138,8 @@ monthly_report() {
     SELECT category,
            printf('¥%,.0f', SUM(amount)) AS total
     FROM transactions
-    WHERE date >= date('now', 'start of month', '-1 month', 'localtime')
-      AND date < date('now', 'start of month', 'localtime')
+    WHERE date >= strftime('$DATE_FORMAT', 'now', 'start of month', '-1 month', 'localtime')
+      AND date < strftime('$DATE_FORMAT', 'now', 'start of month', 'localtime')
     GROUP BY category
     ORDER BY SUM(amount) DESC
     LIMIT 10;
@@ -154,8 +156,8 @@ monthly_report() {
            COUNT(*) AS visits,
            printf('¥%,.0f', SUM(amount)) AS total
     FROM transactions
-    WHERE date >= date('now', 'start of month', '-1 month', 'localtime')
-      AND date < date('now', 'start of month', 'localtime')
+    WHERE date >= strftime('$DATE_FORMAT', 'now', 'start of month', '-1 month', 'localtime')
+      AND date < strftime('$DATE_FORMAT', 'now', 'start of month', 'localtime')
     GROUP BY store
     ORDER BY SUM(amount) DESC
     LIMIT 10;
@@ -167,8 +169,8 @@ monthly_report() {
   grand_total=$(q "
     SELECT printf('¥%,.0f', COALESCE(SUM(amount), 0))
     FROM transactions
-    WHERE date >= date('now', 'start of month', '-1 month', 'localtime')
-      AND date < date('now', 'start of month', 'localtime');
+    WHERE date >= strftime('$DATE_FORMAT', 'now', 'start of month', '-1 month', 'localtime')
+      AND date < strftime('$DATE_FORMAT', 'now', 'start of month', 'localtime');
   ")
   echo "💰 Grand Total: ${grand_total}"
 }
