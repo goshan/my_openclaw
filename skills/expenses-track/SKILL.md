@@ -2,7 +2,7 @@
 name: expenses-tracker
 description: >
   Track credit card expenses across 2 cards, QR code payment PayPay and cash payment (Lexus VISA, Amazon Mastercard, PayPay JCB, Cash).
-  Use when: user upload receipt image or paypay screenshot, asks about expenses, spending, card transactions, or says "expense report", "how much did I spend".
+  Use when: user upload receipt image or paypay screenshot, send expense-like info such as amount, store or asks about expenses, spending, card transactions, or says "expense report", "how much did I spend".
   Also cron job can use this skill to fetch card usage emails
 metadata:
   openclaw:
