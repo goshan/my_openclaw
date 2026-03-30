@@ -7,15 +7,31 @@
     "jobs": [
       {
         "name": "check_school_emails",
+        "type": "openclaw",
         "schedule": "0 8,12,18,22 * * *",
         "channel_id": "C0APJPJR2MN",
         "message": "Check for new school emails using the school-mail-monitor skill. Follow the workflow in the skill instructions to search emails from the target 2 school senders and make summary. Because the skill has specified how to send the summary to channels, so just follow that instruction, no need to send other information."
       },
       {
         "name": "check_card_emails",
-        "schedule": "0 5 * * *",
+        "type": "openclaw",
+        "schedule": "0 3 * * *",
         "channel_id": "C0AQDQ257G8",
         "message": "Check for new card emails using the expenses-track skill. Follow the workflow in the MODE 1 instructions to search emails from the target 2 card issuer senders and extract the required data and insert to database. Because the skill has specified how to send the summary to channels, so just follow that instruction, no need to send other information."
+      },
+      {
+        "name": "expense_daily_report",
+        "type": "system",
+        "schedule": "0 8 * * *",
+        "env": "/home/ubuntu/openclaw_config/env",
+        "task": "/home/ubuntu/openclaw_config/skills/expenses-track/scripts/report daily"
+      },
+      {
+        "name": "expense_monthly_report",
+        "type": "system",
+        "schedule": "0 8 1 * *",
+        "env": "/home/ubuntu/openclaw_config/env",
+        "task": "/home/ubuntu/openclaw_config/skills/expenses-track/scripts/report monthly"
       }
     ]
   }

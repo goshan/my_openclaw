@@ -9,6 +9,9 @@ echo ""
 HOME_DIR=$(cd "$(dirname "$0")/.." &> /dev/null && pwd)
 SKILL_DIR="$HOME/.openclaw/workspace/skills"
 
+CRON_MARKER_START="# --- OPENCLAW MANAGED START (do not edit) ---"
+CRON_MARKER_END="# --- OPENCLAW MANAGED END ---"
+
 echo "Installing skills..."
 cat $HOME_DIR/deploy_config.json | jq -r '.skills[]' | while read -r skill; do
   echo "  - $skill"
@@ -19,30 +22,57 @@ echo "Skills installed to $SKILL_DIR"
 echo ""
 
 echo "Installing Cron jobs..."
-cat $HOME_DIR/deploy_config.json | jq -c '.cron.jobs[]' | while read -r job; do
+# --- Get current crontab, split into unmanaged + managed ---
+crontab_current=$(crontab -l 2>/dev/null || echo "")
+
+# Extract unmanaged lines (everything outside markers)
+crontab_before=$(echo "$crontab_current" | sed -n "1,/^${MARKER_START}/{ /^${MARKER_START}/d; p; }")
+crontab_managed=""
+crontab_after=$(echo "$crontab_current" | sed -n "/^${MARKER_END}/,\${ /^${MARKER_END}/d; p; }")
+
+while read -r job; do
   name=$(echo $job | jq -r '.name')
+  cron_type=$(echo $job | jq -r '.type')
+  echo "  - $name ($cron_type)"
+
   schedule=$(echo $job | jq -r '.schedule')
-  message=$(echo $job | jq -r '.message')
-  channel_id=$(echo $job | jq -r '.channel_id')
+  if [[ "$cron_type" == "openclaw" ]]; then
+    message=$(echo $job | jq -r '.message')
+    channel_id=$(echo $job | jq -r '.channel_id')
 
-  echo "  - $name"
-  if [[ -f "$HOME_DIR/tmp/cron_id_$name" ]]; then
-    cron_id=$(cat "$HOME_DIR/tmp/cron_id_$name")
-    openclaw cron remove $cron_id --json > /dev/null
+    if [[ -f "$HOME_DIR/tmp/cron_id_$name" ]]; then
+      cron_id=$(cat "$HOME_DIR/tmp/cron_id_$name")
+      openclaw cron remove $cron_id --json > /dev/null
+    fi
+
+    openclaw cron add \
+      --name "$name" \
+      --cron "$schedule" \
+      --tz "Asia/Tokyo" \
+      --session isolated \
+      --message "$message" \
+      --announce \
+      --channel slack \
+      --to "channel:$channel_id" \
+      --json \
+      | jq -r '.id' > "$HOME_DIR/tmp/cron_id_$name"
+  elif [[ "$cron_type" == "system" ]]; then
+    env=$(echo $job | jq -r '.env')
+    task=$(echo $job | jq -r '.task')
+
+    # Generate new managed block
+    crontab_managed+="$schedule /bin/bash -c 'source $env && $task'\\n"
   fi
+done < <(cat $HOME_DIR/deploy_config.json | jq -c '.cron.jobs[]')
 
-  openclaw cron add \
-    --name "$name" \
-    --cron "$schedule" \
-    --tz "Asia/Tokyo" \
-    --session isolated \
-    --message "$message" \
-    --announce \
-    --channel slack \
-    --to "channel:$channel_id" \
-    --json \
-    | jq -r '.id' > "$HOME_DIR/tmp/cron_id_$name"
-done
+echo "$crontab_current" > "$HOME_DIR/tmp/crontab_backup.bak"
+crontab_new="$crontab_before
+$MARKER_START
+$crontab_managed
+$MARKER_END
+$crontab_after"
+echo "$crontab_new" | crontab -
+
 echo "Cron installed"
 echo ""
 

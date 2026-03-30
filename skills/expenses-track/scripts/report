@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # report — Generate daily or monthly expense reports
-# Usage: report daily|monthly [--webhook <url>]
+# Usage: report daily|monthly
+# Env:   SLACK_WEBHOOK_URL — if set, posts output to Slack instead of stdout
 
 set -euo pipefail
 
@@ -75,8 +76,9 @@ daily_report() {
     FROM transactions
     WHERE date = date('now', '-1 day', 'localtime');
   ")
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo
   echo "💰 Yesterday Total: ${yesterday_total}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo
 
   # Month-to-date
@@ -184,27 +186,17 @@ monthly_report() {
   echo "💰 Grand Total: ${grand_total}"
 }
 
-WEBHOOK_URL=""
-MODE=""
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    daily|monthly) MODE="$1"; shift ;;
-    --webhook) WEBHOOK_URL="$2"; shift 2 ;;
-    *) echo "Usage: report daily|monthly [--webhook <url>]" >&2; exit 1 ;;
-  esac
-done
-
-if [ -z "$MODE" ]; then
-  echo "Usage: report daily|monthly [--webhook <url>]" >&2
+MODE="${1:-}"
+if [[ "$MODE" != "daily" && "$MODE" != "monthly" ]]; then
+  echo "Usage: report daily|monthly" >&2
   exit 1
 fi
 
 output=$("${MODE}_report")
 
-if [ -n "$WEBHOOK_URL" ]; then
+if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
   payload=$(jq -n --arg text "$output" '{"text": $text}')
-  curl -s -X POST -H 'Content-type: application/json' --data "$payload" "$WEBHOOK_URL"
+  curl -s -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
 else
   echo "$output"
 fi
