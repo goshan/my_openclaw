@@ -19,18 +19,17 @@ printf '%s\n' "$BACKUP_DIR/skills_*.bak" | sort -r | tail -n +4 | xargs -I {} rm
 echo "Backup skills to $skill_backup"
 echo ""
 
-crontab_current=$(crontab -l 2>/dev/null || echo "")
 crontab_backup="$BACKUP_DIR/crontab_$TIME.bak"
-echo $crontab_current > $crontab_backup
+crontab -l > $crontab_backup
 # only keep the latest 3 backups
-printf '%s\n' "$BACKUP_DIR/crontab_*.bak" | sort -r | tail -n +4 | xargs -d '\n' rm --
+printf '%s\n' "$BACKUP_DIR/crontab_*.bak" | sort -r | tail -n +4 | xargs -I {} rm -- "{}"
 echo "Backup crontab to $crontab_backup"
 echo ""
 
 openclaw_cron_backup="$BACK_DIR/openclaw_jobs_$TIME.bak.json"
 cp $OPENCLAW_CRON $openclaw_cron_backup
 # only keep the latest 3 backups
-printf '%s\n' "$BACKUP_DIR/openclaw_jobs_*.bak.json" | sort -r | tail -n +4 | xargs -d '\n' rm --
+printf '%s\n' "$BACKUP_DIR/openclaw_jobs_*.bak.json" | sort -r | tail -n +4 | xargs -I {} rm -- "{}"
 echo "Backup openclaw cron jobs to $openclaw_cron_backup"
 echo ""
 
