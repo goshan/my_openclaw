@@ -13,6 +13,9 @@ CRONTAB_BAK="$HOME_DIR/tmp/crontab.bak"
 CRONTAB_START="# --- OPENCLAW MANAGED START (do not edit) ---"
 CRONTAB_END="# --- OPENCLAW MANAGED END ---"
 
+# Backup
+$HOME_DIR/tools/backup.sh
+
 echo "Installing skills..."
 cat $HOME_DIR/deploy_config.json | jq -r '.skills[]' | while read -r skill; do
   echo "  - $skill"
