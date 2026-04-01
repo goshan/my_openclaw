@@ -4,9 +4,11 @@
     "expenses-track"
   ],
   "tools": [
-    "mail_fetch",
-    "mail_extract",
-    "sqlite3_exec"
+    "mail/mail_fetch",
+    "mail/mail_extract",
+    "database/sqlite3_exec",
+    "skills/expense-track/expense_add",
+    "skills/expense-track/report"
   ],
   "cron": {
     "jobs": [

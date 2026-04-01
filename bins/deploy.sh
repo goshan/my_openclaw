@@ -18,6 +18,15 @@ $MY_OPENCLAW_ROOT/bins/backup.sh
 # env file
 echo "Applying env..."
 grep -v '^#' "$MY_OPENCLAW_ROOT/env" | sed 's/^export //' > "$OPENCLAW_ROOT/.env"
+echo "Applied env to $OPENCLAW_ROOT/.env"
+echo ""
+
+echo "Installing tools..."
+cat $MY_OPENCLAW_ROOT/deploy_config.json | jq -r '.toolss[]' | while read -r tool; do
+  echo "  - $tool"
+  cp "$MY_OPENCLAW_ROOT/tools/$tool" "/usr/local/bin/"
+done
+echo "Tools installed to /usr/local/bin"
 echo ""
 
 echo "Installing skills..."
