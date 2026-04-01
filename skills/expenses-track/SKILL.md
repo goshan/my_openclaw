@@ -108,7 +108,7 @@ For each expense report mail, extract the expense transaction fields based on th
 - date: look for content about '利用日'
 - store: look for content about '利用先'
 - amount: look for content about '利用金額'
-  - extract the raw numeric amount and its currency code (e.g. USD, EUR, JPY) by determining marks like '¥', '$', '円', etc.
+  - extract the raw numeric amount and its currency code (e.g. USD, EUR, JPY) by determining marks like '¥', '$', '円', 'yen', etc.
   - do NOT convert — pass the raw amount and currency to `expense_add` via `--currency`
 - category: Assign categories based on store name keywords
   - コンビニ, Lawson, ファミマ, セブン, 7-Eleven → Food
