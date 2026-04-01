@@ -22,7 +22,7 @@ echo "Applied env to $OPENCLAW_ROOT/.env"
 echo ""
 
 echo "Installing tools..."
-cat $MY_OPENCLAW_ROOT/deploy_config.json | jq -r '.toolss[]' | while read -r tool; do
+cat $MY_OPENCLAW_ROOT/deploy_config.json | jq -r '.tools[]' | while read -r tool; do
   echo "  - $tool"
   cp "$MY_OPENCLAW_ROOT/tools/$tool" "/usr/local/bin/"
 done
@@ -75,11 +75,10 @@ while read -r job; do
       --json \
       | jq -r '.id' > "$MY_OPENCLAW_ROOT/tmp/cron_id_$name"
   elif [[ "$cron_type" == "system" ]]; then
-    env=$(echo $job | jq -r '.env')
     task=$(echo $job | jq -r '.task')
 
     # Generate new managed block
-    crontab_managed+="$schedule /bin/bash -c 'source $env && $task'\n"
+    crontab_managed+="$schedule /bin/bash -c 'source $MY_OPENCLAW_ROOT/env && $task'\n"
   fi
 done < <(cat $MY_OPENCLAW_ROOT/deploy_config.json | jq -c '.cron.jobs[]')
 

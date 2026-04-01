@@ -34,7 +34,7 @@ printf '%s\n' "$BACKUP_DIR"/openclaw_jobs_*.bak.json | sort -r | tail -n +4 | xa
 echo "  - openclaw jobs -> $openclaw_cron_backup"
 
 db_backup="$BACKUP_DIR/data_$TIME.bak"
-cp -r "$MY_OPENCLAW_ROOT/data/" "$db_backup"
+cp -r "/data/" "$db_backup"
 # only keep the latest 3 backups
 printf '%s\n' "$BACKUP_DIR"/data_*.bak | sort -r | tail -n +4 | xargs -I {} rm -rf -- "{}"
 echo "  - database -> $db_backup"

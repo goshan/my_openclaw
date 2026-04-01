@@ -65,16 +65,17 @@ openclaw_config/
 │   ├── mail/
 │   │   ├── mail_fetch          # Fetch email messages (bash)
 │   │   └── mail_extract        # Extract text from email JSON (python3)
-│   └── database/
-│       └── sqlite3_exec        # Safe parameterized SQLite runner (python3)
+│   ├── database/
+│   │   └── sqlite3_exec        # Safe parameterized SQLite runner (python3)
+│   └── skills/
+│       └── expense-track/
+│           ├── expense_add     # Insert a transaction record
+│           └── report          # Generate daily/monthly expense reports
 └── skills/
     ├── school-mail-monitor/
     │   └── SKILL.md
     └── expenses-track/
-        ├── SKILL.md
-        └── scripts/
-            ├── expense_add
-            └── report
+        └── SKILL.md
 ```
 
 New skills go in `skills/<skill-name>/` with a `SKILL.md` and any supporting scripts. Register the skill name in `deploy_config.json`, then run `deploy.sh`.
@@ -83,7 +84,7 @@ New skills go in `skills/<skill-name>/` with a `SKILL.md` and any supporting scr
 
 ## Shared Tools
 
-Tools under `tools/` are available to all skills at runtime via `$MY_OPENCLAW_ROOT/tools/`.
+Tools under `tools/` are deployed to `/usr/local/bin/` and available to all skills at runtime.
 
 | Tool | Description |
 |------|-------------|
@@ -95,10 +96,10 @@ Tools under `tools/` are available to all skills at runtime via `$MY_OPENCLAW_RO
 
 ## Data & Databases
 
-Runtime databases live in `data/` (gitignored). Each skill that needs persistence manages its own database. Current databases:
+Runtime databases live in `/data/` (outside the repo). Each skill that needs persistence manages its own database. Current databases:
 
-- `data/mails_monitor.db` — Email deduplication (processed IDs, last scan time)
-- `data/expense.db` — Expense transactions and payment methods
+- `/data/mails_monitor.db` — Email deduplication (processed IDs, last scan time)
+- `/data/expense.db` — Expense transactions and payment methods
 
 ---
 

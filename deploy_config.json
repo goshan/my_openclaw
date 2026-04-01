@@ -30,15 +30,13 @@
         "name": "expense_daily_report",
         "type": "system",
         "schedule": "0 8 * * *",
-        "env": "/home/ubuntu/my_openclaw/env",
-        "task": "/home/ubuntu/my_openclaw/skills/expenses-track/scripts/report daily"
+        "task": "report daily"
       },
       {
         "name": "expense_monthly_report",
         "type": "system",
         "schedule": "0 8 1 * *",
-        "env": "/home/ubuntu/my_openclaw/env",
-        "task": "/home/ubuntu/my_openclaw/skills/expenses-track/scripts/report monthly"
+        "task": "report monthly"
       }
     ]
   }

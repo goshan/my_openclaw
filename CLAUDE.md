@@ -20,7 +20,7 @@ env                     # Environment variables file (gitignored)
 - Environment loaded from: `/home/ubuntu/openclaw_config/env`
 - Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `SLACK_WEBHOOK_URL`
 - Skills are copied to: `$HOME/.openclaw/workspace/skills/`
-- Databases live in: `$MY_OPENCLAW_ROOT/data/`
+- Databases live in: `/data/`
 
 ## Skills
 
