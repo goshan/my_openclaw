@@ -14,7 +14,9 @@ CRONTAB_START="# --- OPENCLAW MANAGED START (do not edit) ---"
 CRONTAB_END="# --- OPENCLAW MANAGED END ---"
 
 # env file
+echo "Applying env..."
 grep -v '^#' "$MY_OPENCLAW_ROOT/env" | sed 's/^export //' > "$OPENCLAW_ROOT/.env"
+echo ""
 
 # Backup
 $MY_OPENCLAW_ROOT/bins/backup.sh
