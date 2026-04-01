@@ -3,8 +3,7 @@
 MAIL_DB_PATH="$HOME/data/mails_monitor.db"
 EXPENSE_DB_PATH="$HOME/data/expense.db"
 
-echo "=== Init DB ==="
-echo ""
+echo "Init DB..."
 
 sqlite3 "$MAIL_DB_PATH" << 'SQL'
 CREATE TABLE IF NOT EXISTS processed_emails (

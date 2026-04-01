@@ -26,6 +26,7 @@ cat $MY_OPENCLAW_ROOT/deploy_config.json | jq -r '.tools[]' | while read -r tool
   echo "  - $tool"
   sudo cp "$MY_OPENCLAW_ROOT/tools/$tool" "/usr/local/bin/"
 done
+sudo chown $(whoami) /usr/local/bin/*
 echo "Tools installed to /usr/local/bin"
 echo ""
 
