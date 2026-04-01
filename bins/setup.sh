@@ -9,7 +9,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
 # Create folders
 echo "create new folders"
 mkdir -p "$OPENCLAW_ROOT/workspace/skills"
-mkdir -p "/data"
+mkdir -p "$HOME/data"
 mkdir -p "$MY_OPENCLAW_ROOT/tmp"
 echo ""
 

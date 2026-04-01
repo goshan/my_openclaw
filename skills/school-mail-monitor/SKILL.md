@@ -46,6 +46,7 @@ Usage: mail_fetch <sender1> <sender2> ...
 These <sender>s don't need to be a full mail address, it can be part of address, ex. a postfix from `@` like `@gmail.com`, etc
 Output: Save all email content to a temp file, and print the file path to the stdout
 Notes: max fetching number is: 20
+Database is in `$HOME/data/mails_monitor.db`
 
 ---
 

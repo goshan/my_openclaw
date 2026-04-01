@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-DB="/data/expense.db"
+DB="$HOME/data/expense.db"
 
 q() { sqlite3 "$DB" "$1"; }
 

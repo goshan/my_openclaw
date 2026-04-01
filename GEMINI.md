@@ -22,7 +22,7 @@ OpenClaw acts as the execution engine, while this repository defines:
 
 - **System Root**: `/home/ubuntu/my_openclaw/` (stored in `$MY_OPENCLAW_ROOT`)
 - **OpenClaw Home**: `$HOME/.openclaw/workspace/` (stored in `$OPENCLAW_ROOT`)
-- **Persistent Data**: `/data/` (SQLite databases)
+- **Persistent Data**: `$HOME/data/` (SQLite databases)
 - **Tool Path**: `/usr/local/bin/` (all tools in `tools/` are symlinked/copied here)
 - **Backups**: `/home/ubuntu/my_openclaw/backup/` (Rolling 3 most recent backups)
 
@@ -46,13 +46,13 @@ OpenClaw acts as the execution engine, while this repository defines:
 
 ## Database Schemas
 
-### `/data/mails_monitor.db` (Email Deduplication)
+### `$HOME/data/mails_monitor.db` (Email Deduplication)
 - **`processed_emails`**: Tracks message IDs to prevent double-processing.
   - Columns: `id, message_id, subject, sender, received_at, processed_at`
 - **`scan_state`**: Stores the timestamp of the last successful scan per sender.
   - Columns: `sender (PK), last_scan_time`
 
-### `/data/expense.db` (Finances)
+### `$HOME/data/expense.db` (Finances)
 - **`payment_methods`**: Master table for tracking payment types.
   - `1`: Lexus (VISA), `2`: Amazon (Mastercard), `3`: PayPay (QR), `4`: Cash
 - **`transactions`**: The ledger for all expenses.

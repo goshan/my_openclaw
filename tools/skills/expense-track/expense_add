@@ -3,14 +3,16 @@
 expense_add: Insert a transaction record into the expenses database.
 Usage: expense_add <payment_method_id> <date> <store> <amount> <category> <note>
   date:     'YYYY/MM/DD', 'YYYY-MM-DD', or either with ' HH:mm' — stored as YYYY-MM-DD
+Note: Database is located in `$HOME/data/expense.db`
 """
 
+import os
 import sys
 import sqlite3
 from pathlib import Path
 from datetime import datetime
 
-DB_PATH = '/data/expense.db'
+DB_PATH = os.path.expanduser('~/data/expense.db')
 
 
 def parse_date(date_str):

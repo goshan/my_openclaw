@@ -4,10 +4,11 @@
 # Usage: mail_fetch <sender1> <sender2> ...
 # These <sender>s don't need to be a full mail address, it can be part of address, ex. a postfix from `@` like `@gmail.com`, etc
 # Notes: max fetching number is: 20
+# Database is in `$HOME/data/mails_monitor.db
 
 set -e
 
-DB_PATH="/data/mails_monitor.db"
+DB_PATH="$HOME/data/mails_monitor.db"
 TMP_DIR=$(mktemp -d)
 TMP_OUTPUT=$(mktemp)
 

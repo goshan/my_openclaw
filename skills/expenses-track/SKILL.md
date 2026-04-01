@@ -23,7 +23,7 @@ Track expenses across 2 credit cards, QR code payment and cash payment with auto
 
 ## Database
 
-Location: `/data/expense.db`
+Location: `$HOME/data/expense.db`
 
 ### Payment Methods
 
@@ -67,12 +67,14 @@ Usage: mail_fetch <sender1> <sender2> ...
 These <sender>s don't need to be a full mail address, it can be part of address, ex. a postfix from `@` like `@gmail.com`, etc
 Output: Save all email content to a temp file, and print the file path to the stdout
 Notes: max fetching number is: 20
+Database is in `$HOME/data/mails_monitor.db`
 
 ### expense_add
 
 Insert a transaction record into the expense database.
 Usage: expense_add <payment_method_id> <date> <store> <amount> <category> <note>
   date:     'YYYY/MM/DD', 'YYYY-MM-DD', or either with ' HH:mm' — stored as YYYY-MM-DD
+Note: Database is located in `$HOME/data/expense.db`
 
 ---
 
@@ -244,7 +246,7 @@ For any user request about a custom time range ("last week", "last 3 days", "thi
 
 Summary by card:
 ```bash
-sqlite3 -header -column /data/expense.db "
+sqlite3 -header -column $HOME/data/expense.db "
 SELECT pm.name AS payment_method,
        COUNT(*) AS txns,
        printf('¥%,.0f', SUM(t.amount)) AS total
@@ -258,7 +260,7 @@ ORDER BY SUM(t.amount) DESC;
 
 Details:
 ```bash
-sqlite3 -header -column /data/expense.db "
+sqlite3 -header -column $HOME/data/expense.db "
 SELECT t.date, pm.name AS payment_method, t.store, t.amount, t.category
 FROM transactions t
 JOIN payment_methods pm ON t.payment_method_id = pm.id
@@ -269,7 +271,7 @@ ORDER BY t.date DESC, t.amount DESC;
 
 Grand total:
 ```bash
-sqlite3 /data/expense.db "
+sqlite3 $HOME/data/expense.db "
 SELECT printf('¥%,.0f', COALESCE(SUM(amount), 0)) AS total
 FROM transactions
 WHERE {DATE_FILTER};
@@ -278,7 +280,7 @@ WHERE {DATE_FILTER};
 
 By category:
 ```bash
-sqlite3 -header -column /data/expense.db "
+sqlite3 -header -column $HOME/data/expense.db "
 SELECT category, COUNT(*) AS txns, printf('¥%,.0f', SUM(amount)) AS total
 FROM transactions
 WHERE {DATE_FILTER}
@@ -289,4 +291,4 @@ ORDER BY SUM(amount) DESC;
 
 Replace `{DATE_FILTER}` with the appropriate clause from the table above.
 
-You can also decide what query to use based on the schema of table `transactions` in `/data/expense.db`.
+You can also decide what query to use based on the schema of table `transactions` in `$HOME/data/expense.db`.

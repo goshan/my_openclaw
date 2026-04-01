@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MAIL_DB_PATH="/data/mails_monitor.db"
-EXPENSE_DB_PATH="/data/expense.db"
+MAIL_DB_PATH="$HOME/data/mails_monitor.db"
+EXPENSE_DB_PATH="$HOME/data/expense.db"
 
 echo "=== Init DB ==="
 echo ""

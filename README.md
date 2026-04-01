@@ -96,10 +96,10 @@ Tools under `tools/` are deployed to `/usr/local/bin/` and available to all skil
 
 ## Data & Databases
 
-Runtime databases live in `/data/` (outside the repo). Each skill that needs persistence manages its own database. Current databases:
+Runtime databases live in `$HOME/data/` (outside the repo). Each skill that needs persistence manages its own database. Current databases:
 
-- `/data/mails_monitor.db` — Email deduplication (processed IDs, last scan time)
-- `/data/expense.db` — Expense transactions and payment methods
+- `$HOME/data/mails_monitor.db` — Email deduplication (processed IDs, last scan time)
+- `$HOME/data/expense.db` — Expense transactions and payment methods
 
 ---
 
