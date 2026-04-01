@@ -2,11 +2,10 @@
 
 echo "Backup..."
 
-HOME_DIR=$(cd "$(dirname "$0")/.." &> /dev/null && pwd)
-OPENCLAW_DIR="$HOME/.openclaw"
-OPENCLAW_CRON="$OPENCLAW_DIR/cron/jobs.json"
-OPENCLAW_SKILL="$OPENCLAW_DIR/workspace/skills"
-BACKUP_DIR="$HOME_DIR/backup"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
+OPENCLAW_CRON="$OPENCLAW_ROOT/cron/jobs.json"
+OPENCLAW_SKILL="$OPENCLAW_ROOT/workspace/skills"
+BACKUP_DIR="$MY_OPENCLAW_ROOT/backup"
 TIME=$(date "+%Y%m%d%H%M%S")
 
 mkdir -p $BACKUP_DIR
@@ -30,7 +29,7 @@ printf '%s\n' "$BACKUP_DIR"/openclaw_jobs_*.bak.json | sort -r | tail -n +4 | xa
 echo "  - openclaw jobs -> $openclaw_cron_backup"
 
 db_backup="$BACKUP_DIR/data_$TIME.bak"
-cp -r "$HOME_DIR/data/" "$db_backup"
+cp -r "$MY_OPENCLAW_ROOT/data/" "$db_backup"
 # only keep the latest 3 backups
 printf '%s\n' "$BACKUP_DIR"/data_*.bak | sort -r | tail -n +4 | xargs -I {} rm -rf -- "{}"
 echo "  - database -> $db_backup"

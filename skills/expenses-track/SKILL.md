@@ -19,7 +19,7 @@ Track expenses across 2 credit cards, QR code payment and cash payment with auto
 
 ## Database
 
-Location: `$OPENCLAW_CONFIG_HOME/data/expense.db`
+Location: `$MY_OPENCLAW_ROOT/data/expense.db`
 
 ### Payment Methods
 
@@ -63,14 +63,14 @@ Usage: mail_fetch <sender1> <sender2> ...
 These <sender>s don't need to be a full mail address, it can be part of address, ex. a postfix from `@` like `@gmail.com`, etc
 Output: Save all email content to a temp file, and print the file path to the stdout
 Notes: max fetching number is: 20
-Location: `$OPENCLAW_CONFIG_HOME/tools/mail/mail_fetch`
+Location: `$MY_OPENCLAW_ROOT/tools/mail/mail_fetch`
 
 ### expense_add
 
 Insert a transaction record into the expense database.
 Usage: expense_add <payment_method_id> <date> <store> <amount> <category> <note>
   date:     'YYYY/MM/DD', 'YYYY-MM-DD', or either with ' HH:mm' — stored as YYYY-MM-DD
-Location: `$OPENCLAW_CONFIG_HOME/skills/expenses-track/scripts/expense_add`
+Location: `$MY_OPENCLAW_ROOT/skills/expenses-track/scripts/expense_add`
 
 ---
 
@@ -81,7 +81,7 @@ When asked to "check card emails" or triggered by cron:
 ### Step 1: Run the script to fetch expense emails for 2 cards
 
 ```bash
-$OPENCLAW_CONFIG_HOME/tools/mail/mail_fetch "info@tscubic.com" "statement@vpass.ne.jp"
+$MY_OPENCLAW_ROOT/tools/mail/mail_fetch "info@tscubic.com" "statement@vpass.ne.jp"
 ```
 
 This fetches all new emails sent by "info@tscubic.com" "statement@vpass.ne.jp" after last fetch date, deduplicates, and output clean content text to a temp file. The temp file path is printed by stdout as 'Save all emails content to file: <temp_file_path>'
@@ -122,7 +122,7 @@ For each expense report mail, extract the expense transaction fields based on th
 For each extracted transaction data, insert to sqlite3 database by the following command
 
 ```bash
-$OPENCLAW_CONFIG_HOME/skills/expenses-track/scripts/expense_add "<payment_method_id>" "<date>" "<store>" "<amount>" "<category>" "<note>"
+$MY_OPENCLAW_ROOT/skills/expenses-track/scripts/expense_add "<payment_method_id>" "<date>" "<store>" "<amount>" "<category>" "<note>"
 ```
 
 ### Step 4: Report results
@@ -240,7 +240,7 @@ For any user request about a custom time range ("last week", "last 3 days", "thi
 
 Summary by card:
 ```bash
-sqlite3 -header -column $OPENCLAW_CONFIG_HOME/data/expense.db "
+sqlite3 -header -column $MY_OPENCLAW_ROOT/data/expense.db "
 SELECT pm.name AS payment_method,
        COUNT(*) AS txns,
        printf('¥%,.0f', SUM(t.amount)) AS total
@@ -254,7 +254,7 @@ ORDER BY SUM(t.amount) DESC;
 
 Details:
 ```bash
-sqlite3 -header -column $OPENCLAW_CONFIG_HOME/data/expense.db "
+sqlite3 -header -column $MY_OPENCLAW_ROOT/data/expense.db "
 SELECT t.date, pm.name AS payment_method, t.store, t.amount, t.category
 FROM transactions t
 JOIN payment_methods pm ON t.payment_method_id = pm.id
@@ -265,7 +265,7 @@ ORDER BY t.date DESC, t.amount DESC;
 
 Grand total:
 ```bash
-sqlite3 $OPENCLAW_CONFIG_HOME/data/expense.db "
+sqlite3 $MY_OPENCLAW_ROOT/data/expense.db "
 SELECT printf('¥%,.0f', COALESCE(SUM(amount), 0)) AS total
 FROM transactions
 WHERE {DATE_FILTER};
@@ -274,7 +274,7 @@ WHERE {DATE_FILTER};
 
 By category:
 ```bash
-sqlite3 -header -column $OPENCLAW_CONFIG_HOME/data/expense.db "
+sqlite3 -header -column $MY_OPENCLAW_ROOT/data/expense.db "
 SELECT category, COUNT(*) AS txns, printf('¥%,.0f', SUM(amount)) AS total
 FROM transactions
 WHERE {DATE_FILTER}
@@ -285,4 +285,4 @@ ORDER BY SUM(amount) DESC;
 
 Replace `{DATE_FILTER}` with the appropriate clause from the table above.
 
-You can also decide what query to use based on the schema of table `transactions` in `$OPENCLAW_CONFIG_HOME/data/expense.db`.
+You can also decide what query to use based on the schema of table `transactions` in `$MY_OPENCLAW_ROOT/data/expense.db`.

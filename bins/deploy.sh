@@ -6,21 +6,24 @@ set -ef
 echo "=== Deploy ==="
 echo ""
 
-HOME_DIR=$(cd "$(dirname "$0")/.." &> /dev/null && pwd)
-SKILL_DIR="$HOME/.openclaw/workspace/skills"
-CRONTAB_BAK="$HOME_DIR/tmp/crontab.bak"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
+SKILL_DIR="$OPENCLAW_ROOT/workspace/skills"
+CRONTAB_BAK="$MY_OPENCLAW_ROOT/tmp/crontab.bak"
 
 CRONTAB_START="# --- OPENCLAW MANAGED START (do not edit) ---"
 CRONTAB_END="# --- OPENCLAW MANAGED END ---"
 
+# env file
+grep -v '^#' "$MY_OPENCLAW_ROOT/env" | sed 's/^export //' > "$OPENCLAW_ROOT/.env"
+
 # Backup
-$HOME_DIR/bins/backup.sh
+$MY_OPENCLAW_ROOT/bins/backup.sh
 
 echo "Installing skills..."
-cat $HOME_DIR/deploy_config.json | jq -r '.skills[]' | while read -r skill; do
+cat $MY_OPENCLAW_ROOT/deploy_config.json | jq -r '.skills[]' | while read -r skill; do
   echo "  - $skill"
   mkdir -p "$SKILL_DIR/$skill"
-  cp "$HOME_DIR/skills/$skill/SKILL.md" "$SKILL_DIR/$skill/SKILL.md"
+  cp "$MY_OPENCLAW_ROOT/skills/$skill/SKILL.md" "$SKILL_DIR/$skill/SKILL.md"
 done
 echo "Skills installed to $SKILL_DIR"
 echo ""
@@ -45,8 +48,8 @@ while read -r job; do
     message=$(echo $job | jq -r '.message')
     channel_id=$(echo $job | jq -r '.channel_id')
 
-    if [[ -f "$HOME_DIR/tmp/cron_id_$name" ]]; then
-      cron_id=$(cat "$HOME_DIR/tmp/cron_id_$name")
+    if [[ -f "$MY_OPENCLAW_ROOT/tmp/cron_id_$name" ]]; then
+      cron_id=$(cat "$MY_OPENCLAW_ROOT/tmp/cron_id_$name")
       openclaw cron remove $cron_id --json > /dev/null
     fi
 
@@ -60,7 +63,7 @@ while read -r job; do
       --channel slack \
       --to "channel:$channel_id" \
       --json \
-      | jq -r '.id' > "$HOME_DIR/tmp/cron_id_$name"
+      | jq -r '.id' > "$MY_OPENCLAW_ROOT/tmp/cron_id_$name"
   elif [[ "$cron_type" == "system" ]]; then
     env=$(echo $job | jq -r '.env')
     task=$(echo $job | jq -r '.task')
@@ -68,7 +71,7 @@ while read -r job; do
     # Generate new managed block
     crontab_managed+="$schedule /bin/bash -c 'source $env && $task'\n"
   fi
-done < <(cat $HOME_DIR/deploy_config.json | jq -c '.cron.jobs[]')
+done < <(cat $MY_OPENCLAW_ROOT/deploy_config.json | jq -c '.cron.jobs[]')
 
 crontab_new="$crontab_before
 

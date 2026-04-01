@@ -7,9 +7,10 @@
 
 set -e
 
-HOME_DIR=$(cd "$(dirname "$0")/../.." &> /dev/null && pwd)
-TOOLS_DIR="$HOME_DIR/tools"
-DB_PATH="$HOME_DIR/data/mails_monitor.db"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/env"
+
+TOOLS_DIR="$MY_OPENCLAW_ROOT/tools"
+DB_PATH="$MY_OPENCLAW_ROOT/data/mails_monitor.db"
 TMP_DIR=$(mktemp -d)
 TMP_OUTPUT=$(mktemp)
 

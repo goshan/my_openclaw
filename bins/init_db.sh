@@ -1,8 +1,8 @@
 #!/bin/bash
 
-HOME_DIR=$(cd "$(dirname "$0")/.." &> /dev/null && pwd)
-MAIL_DB_PATH="$HOME_DIR/data/mails_monitor.db"
-EXPENSE_DB_PATH="$HOME_DIR/data/expense.db"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
+MAIL_DB_PATH="$MY_OPENCLAW_ROOT/data/mails_monitor.db"
+EXPENSE_DB_PATH="$MY_OPENCLAW_ROOT/data/expense.db"
 
 echo "=== Init DB ==="
 echo ""

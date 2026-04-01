@@ -4,21 +4,21 @@ set -e
 echo "=== Setup ==="
 echo ""
 
-HOME_DIR=$(cd "$(dirname "$0")/.." &> /dev/null && pwd)
-SKILL_DIR="$HOME/.openclaw/workspace/skills"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
+SKILL_DIR="$OPENCLAW_ROOT/workspace/skills"
 
 # Create folders
 echo "create new folders"
 mkdir -p $SKILL_DIR
-mkdir -p "$HOME_DIR/data"
-mkdir -p "$HOME_DIR/tmp"
+mkdir -p "$MY_OPENCLAW_ROOT/data"
+mkdir -p "$MY_OPENCLAW_ROOT/tmp"
 
 echo ""
 
 # Initialize database
-$HOME_DIR/tools/init_db.sh
+$MY_OPENCLAW_ROOT/tools/init_db.sh
 
 # Deploy
-$HOME_DIR/tools/deploy.sh
+$MY_OPENCLAW_ROOT/tools/deploy.sh
 
 echo "=== Setup Complete ==="

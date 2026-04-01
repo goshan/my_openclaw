@@ -5,8 +5,8 @@
 
 set -euo pipefail
 
-HOME_DIR=$(cd "$(dirname "$0")/../../.." &> /dev/null && pwd)
-DB="${HOME_DIR}/data/expense.db"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/env"
+DB="${MY_OPENCLAW_ROOT}/data/expense.db"
 
 q() { sqlite3 "$DB" "$1"; }
 
