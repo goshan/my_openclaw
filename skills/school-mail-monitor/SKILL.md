@@ -9,8 +9,10 @@ metadata:
     emoji: "🏫"
     requires:
       bins:
-        - sqlite3
         - gog
+        - mail_fetch
+        - mail_extract
+        - sqlite3_exec
 ---
 
 # School Mail Monitor
