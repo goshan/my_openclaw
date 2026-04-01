@@ -9,16 +9,16 @@ SKILL_DIR="$OPENCLAW_ROOT/workspace/skills"
 
 # Create folders
 echo "create new folders"
-mkdir -p $SKILL_DIR
+mkdir -p "$SKILL_DIR"
 mkdir -p "$MY_OPENCLAW_ROOT/data"
 mkdir -p "$MY_OPENCLAW_ROOT/tmp"
 
 echo ""
 
 # Initialize database
-$MY_OPENCLAW_ROOT/tools/init_db.sh
+$MY_OPENCLAW_ROOT/bins/init_db.sh
 
 # Deploy
-$MY_OPENCLAW_ROOT/tools/deploy.sh
+$MY_OPENCLAW_ROOT/bins/deploy.sh
 
 echo "=== Setup Complete ==="

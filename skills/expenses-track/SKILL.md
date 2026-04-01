@@ -1,5 +1,5 @@
 ---
-name: expenses-tracker
+name: expenses-track
 description: >
   Track credit card expenses across 2 cards, QR code payment PayPay and cash payment (Lexus VISA, Amazon Mastercard, PayPay JCB, Cash).
   Use when: user upload receipt image or paypay screenshot, send expense-like info such as amount, store or asks about expenses, spending, card transactions, or says "expense report", "how much did I spend".
@@ -101,7 +101,7 @@ For each expense report mail, extract the expense transaction fields based on th
 - date: look for content about '利用日'
 - store: look for content about '利用先'
 - amount: look for content about '利用金額'
-  - if the unit is not yen, ¥, or 円, then detect the currency and convert the amount to JPY with the laest currency, then record the orinal amount, unit, and currency as <note>
+  - if the unit is not yen, ¥, or 円, then detect the currency and convert the amount to JPY with the latest currency, then record the original amount, unit, and currency as <note>
 - category: Assign categories based on store name keywords
   - コンビニ, Lawson, ファミマ, セブン, 7-Eleven → Food
   - スーパー, イオン, ライフ, まいばすけっと → Groceries
@@ -205,7 +205,7 @@ When user says something like "spent 1500 yen at Lawson with PayPay":
 - amount
   - use the same rule as MODE 1 Step 2
   - If can't be determined, ask the user directly instead of guessing
-- category: use the same rule as MODE 2 Step 2
+- category: use the same rule as MODE 1 Step 2
 - note: use the same rule as MODE 1 Step 2
 
 ### Step 2: Run the script to insert to table transaction

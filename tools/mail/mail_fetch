@@ -21,7 +21,7 @@ new_time=$(date +"%Y-%m-%d %H:%M:%S")
 # loop for each sender
 new_count=0
 for sender in  "$@"; do
-  last_time=$(sqlite3 $DB_PATH "SELECT last_scan_time FROM scan_state WHERE sender = '$sender' LIMIT 1;")
+  last_time=$($TOOLS_DIR/database/sqlite3_exec "$DB_PATH" "SELECT last_scan_time FROM scan_state WHERE sender = ? LIMIT 1;" "$sender")
   if [[ -z "$last_time" ]]; then
     # default fech from 5 days ago
     last_time=$(date -d "-5 days" +"%Y/%m/%d %H:%M:%S")
@@ -32,7 +32,7 @@ for sender in  "$@"; do
   while read -r item; do
     message_id=$(echo $item | jq -r '.id')
     # skip if already processed before
-    processed=$(sqlite3 $DB_PATH "SELECT COUNT(*) FROM processed_emails WHERE message_id = '$message_id';")
+    processed=$($TOOLS_DIR/database/sqlite3_exec "$DB_PATH" "SELECT COUNT(*) FROM processed_emails WHERE message_id = ?;" "$message_id")
     if [ "$processed" -gt 0 ]; then
       continue
     fi
@@ -45,7 +45,7 @@ for sender in  "$@"; do
 
     # save email content to file
     echo $message_content > "$TMP_DIR/$message_id.json"
-    echo "=== EMAIL: $mail_id ===" >> $TMP_OUTPUT
+    echo "=== EMAIL: $message_id ===" >> $TMP_OUTPUT
     python3 $TOOLS_DIR/mail/mail_extract "$TMP_DIR/$message_id.json" >> $TMP_OUTPUT
     echo "" >> $TMP_OUTPUT
 
