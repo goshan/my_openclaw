@@ -10,6 +10,12 @@ TIME=$(date "+%Y%m%d%H%M%S")
 
 mkdir -p $BACKUP_DIR
 
+env_backup="$BACKUP_DIR/env_$TIME.bak"
+cp "$OPENCLAW_ROOT/.env" $env_backup
+# only keep the latest 3 backups
+printf '%s\n' "$BACKUP_DIR"/env_*.bak | sort -r | tail -n +4 | xargs -I {} rm -- "{}"
+echo "  - .env -> $env_backup"
+
 skill_backup="$BACKUP_DIR/skills_$TIME.bak"
 cp -r "$OPENCLAW_SKILL/" "$skill_backup"
 # only keep the latest 3 backups

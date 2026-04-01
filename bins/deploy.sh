@@ -13,13 +13,13 @@ CRONTAB_BAK="$MY_OPENCLAW_ROOT/tmp/crontab.bak"
 CRONTAB_START="# --- OPENCLAW MANAGED START (do not edit) ---"
 CRONTAB_END="# --- OPENCLAW MANAGED END ---"
 
+# Backup
+$MY_OPENCLAW_ROOT/bins/backup.sh
+
 # env file
 echo "Applying env..."
 grep -v '^#' "$MY_OPENCLAW_ROOT/env" | sed 's/^export //' > "$OPENCLAW_ROOT/.env"
 echo ""
-
-# Backup
-$MY_OPENCLAW_ROOT/bins/backup.sh
 
 echo "Installing skills..."
 cat $MY_OPENCLAW_ROOT/deploy_config.json | jq -r '.skills[]' | while read -r skill; do
