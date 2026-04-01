@@ -24,7 +24,7 @@ echo ""
 echo "Installing tools..."
 cat $MY_OPENCLAW_ROOT/deploy_config.json | jq -r '.tools[]' | while read -r tool; do
   echo "  - $tool"
-  cp "$MY_OPENCLAW_ROOT/tools/$tool" "/usr/local/bin/"
+  sudo cp "$MY_OPENCLAW_ROOT/tools/$tool" "/usr/local/bin/"
 done
 echo "Tools installed to /usr/local/bin"
 echo ""
