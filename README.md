@@ -15,6 +15,63 @@ This repo is the single source of truth for all OpenClaw skills, cron jobs, shar
 
 ---
 
+## gog Setup
+
+`gog` is a CLI tool for Gmail API access, used by `mail_fetch`. Install and authenticate it before running setup.
+
+### Installation
+
+**Homebrew** (macOS):
+```bash
+brew install gogcli
+```
+
+**Build from Source** (Linux server):
+```bash
+git clone https://github.com/steipete/gogcli.git
+cd gogcli
+make
+# Move binary to PATH, e.g.:
+sudo mv bin/gog /usr/local/bin/gog
+```
+
+### Google Cloud OAuth Credentials
+
+1. Create a project at https://console.cloud.google.com/projectcreate
+2. Enable the required APIs:
+   - Gmail API: https://console.cloud.google.com/apis/api/gmail.googleapis.com
+   - Google Drive API: https://console.cloud.google.com/apis/api/drive.googleapis.com
+3. Configure OAuth consent screen: https://console.cloud.google.com/auth/branding
+4. Publish the app to production: https://console.cloud.google.com/auth/audience
+4. Create an OAuth client at https://console.cloud.google.com/auth/clients (type: **Desktop app**) and download the JSON file
+
+### Store and Authorize
+
+```bash
+gog auth credentials ~/Downloads/client_secret_....json
+```
+
+For headless/remote server (no browser on server), use the manual flow:
+
+```bash
+gog auth add you@gmail.com --services user --manual
+```
+
+- The CLI prints an auth URL — open it in a local browser
+- After approval, copy the full redirect URL from the browser address bar
+- Paste it back into the terminal when prompted
+
+The refresh token is stored securely in your system keychain. Set `GOG_KEYRING_PASSWORD` in the `env` file if keychain access requires a password.
+
+### Test
+
+```bash
+export GOG_ACCOUNT=you@gmail.com
+gog gmail labels list
+```
+
+---
+
 ## Setup
 
 ```bash

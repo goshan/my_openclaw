@@ -4,7 +4,8 @@ set -e
 echo "=== Setup ==="
 echo ""
 
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
+env_path="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
+source "$env_path"
 
 # Create folders
 echo "Creating new folders"
@@ -28,5 +29,5 @@ $MY_OPENCLAW_ROOT/bins/deploy.sh
 echo "Importing env to .zshrc"
 echo "" >> "$HOME/.zshrc"
 echo "# My OpenClaw ENV" >> "$HOME/.zshrc"
-echo 'source "$HOME/my_openclaw/env"' >> "$HOME/.zshrc"
+echo "source \"$env_path\"" >> "$HOME/.zshrc"
 echo "=== Setup Complete ==="
