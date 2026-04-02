@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# drive_sync: Upload all local SQLite database files under `$HOME/data` to a Google Drive folder, replacing existing files of the same name
+# Usage: drive_sync <drive_folder_id>
+# Env:   GOG_ACCOUNT — Google account for gog CLI
+# Note:  Uses sqlite3 .backup for a safe, consistent copy before uploading
+
+set -e
+
+if [ "$#" -lt 1 ]; then
+  echo "Usage: drive_sync <drive_folder_id>" >&2
+  exit 1
+fi
+
+DB_DIR="$HOME/data"
+
+TMPDIR=$(mktemp -d)
+trap "rm -rf $TMPDIR" EXIT
+
+for db in "$DB_DIR"/*; do
+  filename=$(basename "$db")
+  tmp_copy="$TMPDIR/$filename"
+
+  echo "  Backing up $filename..."
+  sqlite3 "$db" ".backup $tmp_copy"
+
+  ## Check if file already exists in Drive folder
+  existing_id=$(gog drive ls --parent "$GOG_DRIVE_FOLDER_ID" --json --account "$GOG_ACCOUNT" \
+    | jq -r --arg name "$filename" '.files[] | select(.name == $name) | .id' 2>/dev/null | head -1)
+
+  if [ -n "$existing_id" ]; then
+    echo "  Deleting existing $filename (id: $existing_id)..."
+    gog drive rm "$existing_id" --account "$GOG_ACCOUNT"
+  fi
+
+  echo "  Uploading $filename..."
+  gog drive upload "$tmp_copy" --parent "$GOG_DRIVE_FOLDER_ID" --account "$GOG_ACCOUNT"
+  echo "  Done: $filename"
+done
+
+echo "drive_sync: complete"

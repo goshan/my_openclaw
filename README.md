@@ -1,4 +1,4 @@
-# openclaw_config
+# my_openclaw
 
 Personal automation configuration for [OpenClaw](https://openclaw.dev) — an AI-powered task runner that integrates with Slack, email, and other services.
 
@@ -80,7 +80,7 @@ Here a password might be reuqired as the following, This is used for the refresh
 ```bash
 Enter passphrase to unlock "/root/.config/gogcli/keyring":
 ```
-Then set the password to `GOG_KEYRING_PASSWORD` in the `env` file.
+Also set the password you typed to `GOG_KEYRING_PASSWORD` in the `env` file.
 
 ### Test
 
@@ -95,8 +95,8 @@ gog gmail labels list
 
 ```bash
 # 1. Clone the repo
-git clone <repo-url> ~/openclaw_config
-cd ~/openclaw_config
+git clone <repo-url> ~/my_openclaw
+cd ~/my_openclaw
 
 # 2. Create the env file
 cp env.example env
@@ -129,29 +129,35 @@ Tracks spending across credit cards, QR payments, and cash. Supports automated e
 ## Project Structure
 
 ```
-openclaw_config/
-├── deploy_config.json          # Skills list and cron job definitions
+my_openclaw/
+├── deploy_config.json          # Skills list, tools, and cron job definitions
 ├── env                         # Environment variables (gitignored)
 ├── bins/
 │   ├── setup.sh                # Initial setup
 │   ├── deploy.sh               # Deploy skills and cron jobs to OpenClaw
 │   ├── init_db.sh              # Initialize SQLite databases
 │   └── backup.sh               # Backup skills, crontab, and databases
-├── tools/                      # Shared utilities available to all skills
+├── tools/                      # Shared utilities deployed to /usr/local/bin/, available to all skills
 │   ├── mail/
 │   │   ├── mail_fetch          # Fetch email messages (bash)
 │   │   └── mail_extract        # Extract text from email JSON (python3)
 │   ├── database/
 │   │   └── sqlite3_exec        # Safe parameterized SQLite runner (python3)
+│   ├── drive/
+│   │   └── drive_sync          # Upload SQLite DBs to Google Drive (bash)
 │   └── skills/
 │       └── expense-track/
 │           ├── expense_add     # Insert a transaction record
 │           └── report          # Generate daily/monthly expense reports
-└── skills/
-    ├── school-mail-monitor/
-    │   └── SKILL.md
-    └── expenses-track/
-        └── SKILL.md
+├── skills/
+│   ├── school-mail-monitor/
+│   │   └── SKILL.md
+│   └── expenses-track/
+│       └── SKILL.md
+└── dashboard/                  # Dashboard VPS setup (see dashboard/README.md)
+    ├── db_pull                 # Download DB files from Google Drive (bash)
+    ├── docker-compose.yml      # Metabase Docker setup
+    └── README.md               # Dashboard server setup instructions
 ```
 
 New skills go in `skills/<skill-name>/` with a `SKILL.md` and any supporting scripts. Register the skill name in `deploy_config.json`, then run `deploy.sh`.
@@ -167,6 +173,7 @@ Tools under `tools/` are deployed to `/usr/local/bin/` and available to all skil
 | `tools/mail/mail_fetch` | Fetch new messages from an inbox, with deduplication |
 | `tools/mail/mail_extract` | Convert raw email JSON to plain text |
 | `tools/database/sqlite3_exec` | Run parameterized SQLite queries safely |
+| `tools/drive/drive_sync` | Upload SQLite DB files to Google Drive |
 
 ---
 
@@ -200,5 +207,14 @@ Stored in `env` file
 | `OPENCLAW_ROOT` | Absolute path to the root of OpenClaw in server |
 | `GOG_KEYRING_PASSWORD` | gog script env for auth |
 | `GOG_ACCOUNT` | gog use this as google account |
+| `GOG_DRIVE_FOLDER_ID` | Google Drive folder ID for DB file sync |
 | `SLACK_WEBHOOK_URL` | Slack incoming webhook URL for reports |
+
+---
+
+## Dashboard
+
+The `dashboard/` directory contains everything needed to run a separate visualization VPS: a script to pull databases from Google Drive, a Metabase Docker setup, and full setup instructions.
+
+See **[dashboard/README.md](dashboard/README.md)** for the complete setup guide.
 

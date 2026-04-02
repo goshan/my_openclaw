@@ -12,12 +12,13 @@ skills/                 # Skill definitions (SKILL.md) and scripts
 data/                   # Runtime SQLite databases (gitignored)
 backup/                 # Rolling backups, 3 most recent (gitignored)
 env                     # Environment variables file (gitignored)
+dashboard/              # SQLite DB visualization running in another server
 ```
 
 ## Runtime Environment
 
-- Deployed path on server: `/home/ubuntu/openclaw_config/`
-- Environment loaded from: `/home/ubuntu/openclaw_config/env`
+- Deployed path on server: `/home/ubuntu/my_openclaw/`
+- Environment loaded from: `/home/ubuntu/my_openclaw/env`
 - Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `SLACK_WEBHOOK_URL`
 - Skills are copied to: `$HOME/.openclaw/workspace/skills/`
 - Databases live in: `$HOME/data/`
@@ -122,9 +123,21 @@ bash bins/backup.sh     # Manual backup
 
 Cron job timezone: `Asia/Tokyo`.
 
+## Dashboard (Data Visualization)
+
+SQLite databases are synced to a separate dashboard server via Google Drive for visualization in Metabase.
+
+- `tools/drive/drive_sync` — Uploads DB files to Google Drive (deployed to `/usr/local/bin/` by `deploy.sh`).
+- `dashboard/db_pull` — Downloads DB files from Google Drive.
+- `dashboard/docker-compose.yml` — Runs Metabase on port 3000, mounting `$HOME/data/` as `/db-data`.
+- `dashboard/README.md` — Full setup guide for the dashboard server.
+- Cron on main server: `drive_sync_dbs` at 4:00 AM uploads DBs to Drive and keep logging to `$HOME/log/drive_sync_dbs.log` (registered via `deploy_config.json`).
+- Cron on dashboard server: set up manually per `dashboard/README.md` to run `db_pull` at 5:00 AM.
+- Both tools use `$GOG_DRIVE_FOLDER_ID` and `$GOG_ACCOUNT` from the `env` file.
+
 ## Conventions
 
-- All scripts use `MY_OPENCLAW_ROOT` to build absolute paths of this repo — never hardcode `/home/ubuntu/openclaw_config/`
+- All scripts use `MY_OPENCLAW_ROOT` to build absolute paths of this repo — never hardcode `/home/ubuntu/my_openclaw/`
 - The `env` file is sourced at the start of each cron job; ensure new env vars are added there
 - When adding a new skill: add the directory under `skills/`, add the name to `deploy_config.json`, run `deploy.sh`
 - When modifying a cron schedule: edit `deploy_config.json`, then run `deploy.sh` (it removes old jobs and re-adds)

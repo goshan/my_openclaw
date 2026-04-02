@@ -1,4 +1,4 @@
-# OpenClaw Config: Personal Automation System
+# My OpenClaw: Personal Automation System
 
 This repository contains the source of truth for a personal automation and monitoring system built on **OpenClaw**. It orchestrates AI-driven "skills" to automate expense tracking and school communication monitoring.
 
@@ -29,7 +29,7 @@ OpenClaw acts as the execution engine, while this repository defines:
 ## Repository Structure
 
 ```bash
-├── deploy_config.json      # Master configuration for enabled skills and cron jobs
+├── deploy_config.json      # Master configuration for enabled skills, tools, and cron jobs
 ├── bins/                   # Management and deployment scripts
 │   ├── setup.sh            # Initial system setup and environment configuration
 │   ├── deploy.sh           # Deploy tools, skills, and update crontab/openclaw-cron
@@ -38,10 +38,12 @@ OpenClaw acts as the execution engine, while this repository defines:
 ├── tools/                  # Reusable CLI utilities (deployed to /usr/local/bin/)
 │   ├── mail/               # Gmail fetching and parsing
 │   ├── database/           # Parameterized SQL execution
+│   ├── drive/              # Google Drive sync (drive_sync: upload DBs)
 │   └── skills/             # Skill-specific command-line helpers
-└── skills/                 # AI Skill definitions
-    ├── expenses-track/     # Multi-modal expense tracking logic
-    └── school-mail-monitor/# School inbox summarization logic
+├── skills/                 # AI Skill definitions
+│   ├── expenses-track/     # Multi-modal expense tracking logic
+│   └── school-mail-monitor/# School inbox summarization logic
+└── dashboard/              # Dashboard VPS setup (db_pull, Metabase Docker, README)
 ```
 
 ## Database Schemas
@@ -87,6 +89,7 @@ Mandatory in `env` file:
 - `$OPENCLAW_ROOT`: OpenClaw installation root.
 - `$GOG_ACCOUNT`: Gmail account for `gog`.
 - `$GOG_KEYRING_PASSWORD`: gog script env for auth.
+- `$GOG_DRIVE_FOLDER_ID`: Google Drive folder ID for DB file sync.
 - `$SLACK_WEBHOOK_URL`: Webhook for automated reports.
 
 ### 2. SQL Best Practices

@@ -78,9 +78,14 @@ while read -r job; do
       | jq -r '.id' > "$MY_OPENCLAW_ROOT/tmp/cron_id_$name"
   elif [[ "$cron_type" == "system" ]]; then
     task=$(echo $job | jq -r '.task')
+    log=$(echo $job | jq -r '.log')
 
+    task_cmd="$task"
+    if $log; then
+      task_cmd+=" >> $HOME/log/${name}.log 2>&1"
+    fi
     # Generate new managed block
-    crontab_managed+="$schedule /bin/bash -c 'source $MY_OPENCLAW_ROOT/env && $task'\n"
+    crontab_managed+="$schedule /bin/bash -c 'source $MY_OPENCLAW_ROOT/env && $task_cmd'\n"
   fi
 done < <(cat $MY_OPENCLAW_ROOT/deploy_config.json | jq -c '.cron.jobs[]')
 
