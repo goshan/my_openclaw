@@ -1,7 +1,7 @@
 ---
 name: school-mail-monitor
 description: >
-  Monitor school-related emails from Veracross (m@mail1.veracross.com) and ISSH (@issh.ac.jp). 
+  Monitor school-related emails from Veracross (veracross.com) and ISSH (@issh.ac.jp). 
   Use when: cron triggers "check school emails", user asks about school emails, school notices, or ISSH messages. 
   Reformats emails with title, summary, and action items, then delivers to Slack #mail-report channel.
 metadata:
@@ -21,7 +21,7 @@ Monitor and summarize emails from school-related senders, then deliver formatted
 
 ## Common Email Types from These Senders
 
-**Veracross (m@mail1.veracross.com):**
+**Veracross (veracross.com):**
 - School announcements and newsletters
 - Event notifications
 - Grade/progress reports
@@ -55,10 +55,10 @@ Database is in `$HOME/data/mails_monitor.db`
 ### Step 1: Run the script
 
 ```bash
-mail_fetch "m@mail1.veracross.com" "@issh.ac.jp"
+mail_fetch "veracross.com" "@issh.ac.jp"
 ```
 
-This fetches all new emails sent by "m@mail1.veracross.com" and "@issh.ac.jp" after last fetch date, deduplicates, and output clean content text to a temp file. The temp file path is printed by stdout as 'Save all emails content to file: <temp_file_path>'
+This fetches all new emails sent by "veracross.com" and "@issh.ac.jp" after last fetch date, deduplicates, and output clean content text to a temp file. The temp file path is printed by stdout as 'Save all emails content to file: <temp_file_path>'
 If output says `NO_NEW_EMAILS`, skip step 2 and go to step 3 directly.
 
 
