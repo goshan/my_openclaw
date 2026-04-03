@@ -8,6 +8,8 @@
 
 set -e
 
+echo "===========$(date)==========="
+
 DB_DIR="$HOME/data"
 
 TMPDIR=$(mktemp -d)
@@ -17,7 +19,7 @@ for db in "$DB_DIR"/*; do
   filename=$(basename "$db")
   tmp_copy="$TMPDIR/$filename"
 
-  echo "  Backing up $filename..."
+  echo "🚀 Backing up $filename..."
   sqlite3 "$db" ".backup $tmp_copy"
 
   ## Check if file already exists in Drive folder
@@ -25,13 +27,13 @@ for db in "$DB_DIR"/*; do
     | jq -r --arg name "$filename" '.files[] | select(.name == $name) | .id' 2>/dev/null | head -1)
 
   if [ -n "$existing_id" ]; then
-    echo "  Deleting existing $filename (id: $existing_id)..."
+    echo "⚠️ Deleting existing $filename (id: $existing_id)..."
     gog drive rm "$existing_id" --account "$GOG_ACCOUNT" --force
   fi
 
-  echo "  Uploading $filename..."
+  echo "🚀 Uploading $filename..."
   gog drive upload "$tmp_copy" --parent "$GOG_DRIVE_FOLDER_ID" --account "$GOG_ACCOUNT"
-  echo "  Done: $filename"
+  echo "✅ Done: $filename"
 done
 
 echo "drive_sync: complete"
