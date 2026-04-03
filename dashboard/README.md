@@ -83,8 +83,8 @@ gog gmail labels list
 ### 4. Clone the repo
 
 ```bash
-git clone <repo-url> ~/my_openclaw
-cd ~/my_openclaw
+git clone <repo-url> <my_openclaw_path>
+cd <my_openclaw_path>
 ```
 
 ### 5. Configure environment
@@ -97,7 +97,7 @@ Edit `env` and set at minimum:
 
 | Variable | Value |
 |----------|-------|
-| `MY_OPENCLAW_ROOT` | Absolute path to this repo, e.g. `/home/ubuntu/my_openclaw` |
+| `MY_OPENCLAW_ROOT` | Absolute path to this repo |
 | `GOG_ACCOUNT` | Your Google account email |
 | `GOG_KEYRING_PASSWORD` | Keyring passphrase from step 3 |
 | `GOG_DRIVE_FOLDER_ID` | Google Drive folder ID shared with the main server |
@@ -107,31 +107,18 @@ Edit `env` and set at minimum:
 ### 6. Do an initial pull
 
 ```bash
-source ~/my_openclaw/env
+source <my_openclaw_path>/env
 mkdir -p $HOME/data
-~/my_openclaw/dashboard/db_pull
+<my_openclaw_path>/dashboard/db_pull
 ```
 
-### 7. Start Metabase
+### 7. Set up the cron job
+
+Create `log` folder
 
 ```bash
-cd ~/my_openclaw/dashboard
-docker compose up -d
-
-# this docker will be auto-restarted everytime, so if you want to stop
-docker compose stop
+mkdir -p "$HOME/log
 ```
-
-Metabase will be available at `http://<server-ip>:3000`. Complete the initial setup wizard, then:
-
-1. Go to **Settings → Admin → Databases → Add database**
-2. Choose **SQLite**
-3. Set file path to `/db-data/expense.db`, name it `Expenses`
-4. Repeat for `/db-data/mails_monitor.db`, name it `Mail Monitor`
-
-Metabase re-syncs hourly — new data from the nightly pull is automatically picked up.
-
-### 8. Set up the cron job
 
 ```bash
 crontab -e
@@ -140,10 +127,31 @@ crontab -e
 Add the following line (runs at 5:00 AM, 1 hour after the main server uploads):
 
 ```
-0 5 * * * /bin/bash -c 'source /root/my_openclaw/env && db_pull' >> /root/log/db_pull.log 2>&1
+0 5 * * * /bin/bash -c 'source <my_openclaw_path>/env && db_pull' >> $HOME/log/db_pull.log 2>&1
 ```
 
 Adjust the path to `my_openclaw` to match your `MY_OPENCLAW_ROOT`, also adjust the path to correct log path.
+
+### 8. Start Metabase
+
+```bash
+cd <my_openclaw_path>/dashboard
+docker compose up -d
+```
+
+Metabase will be available at `http://<server-ip>:3000`. Complete the initial setup wizard, then:
+
+1. Go to **Settings → Admin → Databases → Add database**
+2. Choose **SQLite**
+3. Set file path to `/db-data/expense.db`, name it `Expenses`
+
+Metabase re-syncs hourly — new data from the nightly pull is automatically picked up.
+
+this docker will be auto-restarted when system or docker server restarted, so if you want to stop
+
+```bash
+docker compose stop
+```
 
 ---
 
@@ -154,7 +162,8 @@ When new databases are added, `drive_sync` on the main server will automatically
 To update Metabase to a new version:
 
 ```bash
-cd ~/my_openclaw/dashboard
+cd <my_openclaw_path>/dashboard
+docker compose stop
 docker compose pull
 docker compose up -d
 ```
