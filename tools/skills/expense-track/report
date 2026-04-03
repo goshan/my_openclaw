@@ -90,7 +90,7 @@ daily_report() {
     FROM transactions
     WHERE date >= date('now', 'start of month', 'localtime');
   ")
-  echo "📊 Month-to-Date (${month_name}): [${month_grand}](http://dashboard.goshan.info/dashboard/3-expense?tab=6-month-to-date)"
+  echo "📊 Month-to-Date (${month_name}): <http://dashboard.goshan.info/dashboard/3-expense?tab=6-month-to-date|${month_grand}>"
 }
 
 monthly_report() {
@@ -108,7 +108,7 @@ monthly_report() {
     WHERE date >= date('now', 'start of month', '-1 month', 'localtime')
       AND date < date('now', 'start of month', 'localtime');
   ")
-  echo "📊 Monthly Expense Report — ${month_name}: [${grand_total}](http://dashboard.goshan.info/dashboard/3-expense?tab=8-last-month)"
+  echo "📊 Monthly Expense Report — ${month_name}: <http://dashboard.goshan.info/dashboard/3-expense?tab=8-last-month|${grand_total}>"
 }
 
 MODE="${1:-}"
