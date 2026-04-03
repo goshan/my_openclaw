@@ -1,3 +1,5 @@
 tmp/
 backup/
 env
+log/
+metabase-data/

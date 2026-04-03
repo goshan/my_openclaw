@@ -117,8 +117,10 @@ mkdir -p $HOME/data
 Create `log` folder
 
 ```bash
-mkdir -p "$HOME/log
+mkdir -p "<my_openclaw_path>/dashboard/log
 ```
+
+Edit crontab setting
 
 ```bash
 crontab -e
@@ -127,7 +129,7 @@ crontab -e
 Add the following line (runs at 5:00 AM, 1 hour after the main server uploads):
 
 ```
-0 5 * * * /bin/bash -c 'source <my_openclaw_path>/env && db_pull' >> $HOME/log/db_pull.log 2>&1
+0 5 * * * /bin/bash -c 'source <my_openclaw_path>/env && db_pull' >> <my_openclaw_path>/dashboard/log/db_pull.log 2>&1
 ```
 
 Adjust the path to `my_openclaw` to match your `MY_OPENCLAW_ROOT`, also adjust the path to correct log path.
