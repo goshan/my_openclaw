@@ -11,7 +11,7 @@ echo "Init DB..."
 $MYSQL_CMD mails_monitor << 'SQL'
 CREATE TABLE IF NOT EXISTS processed_emails (
   id           INT AUTO_INCREMENT PRIMARY KEY,
-  message_id   VARCHAR(255) NOT NULL UNIQUE,
+  message_id   VARCHAR(125) NOT NULL UNIQUE,
   subject      TEXT,
   sender       VARCHAR(255),
   received_at  DATETIME,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS processed_emails (
 ) CHARACTER SET utf8mb4;
 
 CREATE TABLE IF NOT EXISTS scan_state (
-  sender         VARCHAR(255) PRIMARY KEY,
+  sender         VARCHAR(125) PRIMARY KEY,
   last_scan_time DATETIME NOT NULL
 ) CHARACTER SET utf8mb4;
 SQL
