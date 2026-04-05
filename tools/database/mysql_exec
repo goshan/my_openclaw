@@ -40,9 +40,10 @@ def main():
         )
         cur = conn.cursor()
         cur.execute(query, params if params else None)
-        rows = cur.fetchall()
-        for row in rows:
-            print('\t'.join(str(c) if c is not None else '' for c in row))
+        if cur.description is not None:
+            rows = cur.fetchall()
+            for row in rows:
+                print('\t'.join(str(c) if c is not None else '' for c in row))
         conn.commit()
     except mysql.connector.Error as e:
         print(f"MySQL Error: {e}", file=sys.stderr)
