@@ -9,7 +9,7 @@ This repo is the single source of truth for all OpenClaw skills, cron jobs, shar
 ## Requirements
 
 - [OpenClaw](https://openclaw.dev) installed and running
-- `mysql-server`, `mysql-client`, `python3`, `python3-pip`, `jq`, `curl`, `gog`
+- `mysql-client`, `python3`, `python3-pip`, `jq`, `curl`, `gog`
 - Python: `mysql-connector-python` (installed by `setup.sh` via pip)
 - Any skill-specific dependencies (documented per skill)
 - A configured `env` file (see below)
@@ -94,40 +94,17 @@ gog gmail labels list
 
 ## MySQL Setup
 
-### Install
+MySQL runs on a separate server. This server only needs the client tools to connect to it remotely.
+
+### Install mysql-client and pip3
 
 ```bash
 sudo apt update
-sudo apt install -y mysql-server mysql-client
-sudo systemctl enable mysql
-sudo systemctl start mysql
+sudo apt install -y mysql-client python3-pip
 ```
 
-### Create databases and user
-
-Only do this if the Mysql DB is in this server
-
-```bash
-sudo mysql
-```
-
-```sql
-CREATE DATABASE mails_monitor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE expense CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-CREATE USER '<user>'@'localhost' IDENTIFIED BY '<password>';
-GRANT ALL PRIVILEGES ON mails_monitor.* TO 'openclaw'@'localhost';
-GRANT ALL PRIVILEGES ON expense.* TO 'openclaw'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-Set the same `<user>`, `<password>` as `MYSQL_USER`, `MYSQL_PASSWORD` in your `env` file.
-
-### Install pip3
-
-```bash
-sudo apt install -y python3-pip
-```
+Set `MYSQL_HOST` in your `env` file to the MySQL server's IP address.
+And also the other mysql related variables like `MYSQL_PORT`, `MYSQL_USER`, and `MYSQL_PASSWORD`
 
 ---
 
@@ -193,7 +170,6 @@ my_openclaw/
 │   └── expenses-track/
 │       └── SKILL.md
 └── dashboard/                  # Dashboard VPS setup (see dashboard/README.md)
-    ├── db_pull                 # Download DB files from Google Drive (bash)
     ├── docker-compose.yml      # Metabase Docker setup
     └── README.md               # Dashboard server setup instructions
 ```
@@ -245,7 +221,7 @@ Stored in `env` file
 | `GOG_KEYRING_PASSWORD` | gog script env for auth |
 | `GOG_ACCOUNT` | gog use this as google account |
 | `SLACK_WEBHOOK_URL` | Slack incoming webhook URL for reports |
-| `MYSQL_HOST` | MySQL server host (usually `127.0.0.1`) |
+| `MYSQL_HOST` | MySQL server IP |
 | `MYSQL_PORT` | MySQL server port (usually `3306`) |
 | `MYSQL_USER` | MySQL user |
 | `MYSQL_PASSWORD` | MySQL password |
@@ -254,7 +230,8 @@ Stored in `env` file
 
 ## Dashboard
 
-The `dashboard/` directory contains everything needed to run a separate visualization VPS: a Metabase Docker setup that connects to MySQL, and full setup instructions.
+The `dashboard/` directory contains everything needed to run the Metabase visualization server. 
+Currently the MySQL server is also running on this machine.
 
 See **[dashboard/README.md](dashboard/README.md)** for the complete setup guide.
 

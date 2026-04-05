@@ -20,7 +20,7 @@ dashboard/              # MySQL DB visualization running in another server
 - Environment loaded from: `/home/ubuntu/my_openclaw/env`
 - Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `SLACK_WEBHOOK_URL`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`
 - Skills are copied to: `$HOME/.openclaw/workspace/skills/`
-- Databases: MySQL server with databases `mails_monitor` and `expense`
+- Databases: MySQL (remote server on `$MYSQL_HOST`). Databases: `mails_monitor` and `expense`. Currently co-hosted on the dashboard server.
 
 ## Skills
 
@@ -126,10 +126,10 @@ Cron job timezone: `Asia/Tokyo`.
 
 ## Dashboard (Data Visualization)
 
-MySQL databases are connected remotely for visualization in Metabase.
+The dashboard server serves a dual role: it hosts MySQL (the primary database that the main server writes to remotely) and runs Metabase for visualization.
 
 - `dashboard/docker-compose.yml` — Runs Metabase on port 4000. Metabase connects to the host MySQL via `host.docker.internal`.
-- `dashboard/README.md` — Full setup guide for the dashboard server.
+- `dashboard/README.md` — Full setup guide for the dashboard server, including MySQL remote access configuration.
 
 ## Conventions
 
