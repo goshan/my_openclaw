@@ -6,7 +6,7 @@
   "tools": [
     "mail/mail_fetch",
     "mail/mail_extract",
-    "database/sqlite3_exec",
+    "database/mysql_exec",
     "skills/expense-track/expense_add",
     "skills/expense-track/report",
     "drive/drive_sync"

@@ -1,56 +1,58 @@
 #!/bin/bash
 
-MAIL_DB_PATH="$HOME/data/mails_monitor.db"
-EXPENSE_DB_PATH="$HOME/data/expense.db"
+set -e
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
+
+MYSQL_CMD="mysql -h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER -p$MYSQL_PASSWORD"
 
 echo "Init DB..."
 
-sqlite3 "$MAIL_DB_PATH" << 'SQL'
+$MYSQL_CMD mails_monitor << 'SQL'
 CREATE TABLE IF NOT EXISTS processed_emails (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  message_id TEXT NOT NULL UNIQUE,
-  subject TEXT,
-  sender TEXT,
-  received_at TEXT,
-  processed_at TEXT DEFAULT (datetime('now', 'localtime'))
-);
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  message_id   VARCHAR(255) NOT NULL UNIQUE,
+  subject      TEXT,
+  sender       VARCHAR(255),
+  received_at  DATETIME,
+  processed_at DATETIME DEFAULT NOW()
+) CHARACTER SET utf8mb4;
 
 CREATE TABLE IF NOT EXISTS scan_state (
-  sender TEXT PRIMARY KEY,
-  last_scan_time TEXT NOT NULL
-);
+  sender         VARCHAR(255) PRIMARY KEY,
+  last_scan_time DATETIME NOT NULL
+) CHARACTER SET utf8mb4;
 SQL
 
+echo "  - mails_monitor"
 
-echo "  - $MAIL_DB_PATH"
-
-sqlite3 "$EXPENSE_DB_PATH" << 'SQL'
+$MYSQL_CMD expense << 'SQL'
 CREATE TABLE IF NOT EXISTS payment_methods (
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL,
-  notification_sender TEXT
-);
+  id                   INT PRIMARY KEY,
+  name                 VARCHAR(100) NOT NULL,
+  notification_sender  VARCHAR(255)
+) CHARACTER SET utf8mb4;
 
 CREATE TABLE IF NOT EXISTS transactions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  payment_method_id INTEGER NOT NULL,
-  date TEXT NOT NULL,           -- expense happened date
-  store TEXT,                   -- store name
-  amount REAL NOT NULL,         -- expense amount, unit is JPY
-  category TEXT,                -- category generated based on store
-  note TEXT,                    -- memo for additional information
-  created_at TEXT DEFAULT (datetime('now', 'localtime')),
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  payment_method_id INT NOT NULL,
+  date              DATE NOT NULL,
+  store             VARCHAR(255),
+  amount            DECIMAL(12,2) NOT NULL,
+  category          VARCHAR(100),
+  note              TEXT,
+  created_at        DATETIME DEFAULT NOW(),
   FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id)
-);
+) CHARACTER SET utf8mb4;
 
-INSERT OR IGNORE INTO payment_methods (id, name, notification_sender) VALUES
-  (1, 'Lexus', 'info@tscubic.com'),
-  (2, 'Amazon', 'statement@vpass.ne.jp'),
-  (3, 'PayPay', 'screenshot'),
-  (4, 'Cash', 'receipt');
+INSERT IGNORE INTO payment_methods (id, name, notification_sender) VALUES
+  (1, 'Lexus',   'info@tscubic.com'),
+  (2, 'Amazon',  'statement@vpass.ne.jp'),
+  (3, 'PayPay',  'screenshot'),
+  (4, 'Cash',    'receipt');
 SQL
 
-echo "  - $EXPENSE_DB_PATH"
+echo "  - expense"
 
 echo "Database initialized"
 echo ""

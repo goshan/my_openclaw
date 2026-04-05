@@ -10,10 +10,10 @@ metadata:
     requires:
       bins:
         - gog
-        - sqlite3
+        - mysql
         - mail_fetch
         - mail_extract
-        - sqlite3_exec
+        - mysql_exec
         - expense_add
 ---
 
@@ -23,7 +23,7 @@ Track expenses across 2 credit cards, QR code payment and cash payment with auto
 
 ## Database
 
-Location: `$HOME/data/expense.db`
+MySQL database: `expense`
 
 ### Payment Methods
 
@@ -44,14 +44,14 @@ Schema:
 
 ```sql
 CREATE TABLE IF NOT EXISTS transactions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  payment_method_id INTEGER NOT NULL,
-  date TEXT NOT NULL,           -- expense happened date, %Y-%m-%d
-  store TEXT,                   -- store name
-  amount REAL NOT NULL,         -- expense amount, unit is JPY
-  category TEXT,                -- category generated based on store
-  note TEXT,                    -- memo for additional information
-  created_at TEXT DEFAULT (datetime('now', 'localtime')),
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  payment_method_id INT NOT NULL,
+  date              DATE NOT NULL,
+  store             VARCHAR(255),
+  amount            DECIMAL(12,2) NOT NULL,
+  category          VARCHAR(100),
+  note              TEXT,
+  created_at        DATETIME DEFAULT NOW(),
   FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id)
 );
 ```
@@ -67,7 +67,7 @@ Usage: mail_fetch <sender1> <sender2> ...
 These <sender>s don't need to be a full mail address, it can be part of address, ex. a postfix from `@` like `@gmail.com`, etc
 Output: Save all email content to a temp file, and print the file path to the stdout
 Notes: max fetching number is: 20
-Database is in `$HOME/data/mails_monitor.db`
+Database is `mails_monitor` on the configured MySQL server
 
 ### expense_add
 
@@ -77,7 +77,7 @@ Usage: expense_add <payment_method_id> <date> <store> <amount> <category> <note>
   currency: ISO 4217 code (default: JPY). If non-JPY, fetches live rate and converts to JPY.
             Appends "original amount: CURRENCY RAW" to note automatically.
             If the rate fetch fails, stores the raw amount and marks note with "currency conversion failed".
-Note: Database is located in `$HOME/data/expense.db`
+Note: Database is `expense` on the configured MySQL server
 
 ---
 
@@ -130,7 +130,7 @@ Attention: There might be some information about `取引結果` or something, an
 
 ### Step 3: Run the script to insert transaction record
 
-For each extracted transaction data, insert to sqlite3 database by the following command
+For each extracted transaction data, insert to MySQL database by the following command
 
 ```bash
 # JPY (default)
@@ -175,7 +175,7 @@ Extract transaction fields based on this strategy
 - store
   - For a receipt, it's usually at the bottom or left bottom
   - For PayPay, it at the top of the image, with an store icon
-  - If can't be determined, use 'Unknown', no need to ask 
+  - If can't be determined, use 'Unknown', no need to ask
 - date
   - For a receipt, it's usually in the top right side.
   - For a PayPay screenshot, it's in the top, just under the store icon
@@ -235,19 +235,19 @@ Exactly the same as MODE 2 Step 4
 
 ## MODE 4: FLEXIBLE DATE QUERIES
 
-For any user request about a custom time range ("last week", "last 3 days", "this week", "March", etc.), use these SQLite date patterns:
+For any user request about a custom time range ("last week", "last 3 days", "this week", "March", etc.), use these MySQL date patterns:
 
 **Date filter patterns:**
 
 | User says | SQL WHERE clause |
 |-----------|-----------------|
-| today | `date = date('now', 'localtime')` |
-| yesterday | `date = date('now', '-1 day', 'localtime')` |
-| last 7 days / this week | `date >= date('now', '-7 days', 'localtime')` |
-| last week (Mon-Sun) | `date >= date('now', 'weekday 1', '-14 days', 'localtime') AND date < date('now', 'weekday 1', '-7 days', 'localtime')` |
-| last 30 days | `date >= date('now', '-30 days', 'localtime')` |
-| this month | `date >= date('now', 'start of month', 'localtime')` |
-| last month | `date >= date('now', 'start of month', '-1 month', 'localtime') AND date < date('now', 'start of month', 'localtime')` |
+| today | `date = CURDATE()` |
+| yesterday | `date = CURDATE() - INTERVAL 1 DAY` |
+| last 7 days / this week | `date >= CURDATE() - INTERVAL 7 DAY` |
+| last week (Mon-Sun) | `date >= CURDATE() - INTERVAL (DAYOFWEEK(CURDATE()) + 5) DAY AND date < CURDATE() - INTERVAL (DAYOFWEEK(CURDATE()) - 2) DAY` |
+| last 30 days | `date >= CURDATE() - INTERVAL 30 DAY` |
+| this month | `date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')` |
+| last month | `date >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01') AND date < DATE_FORMAT(CURDATE(), '%Y-%m-01')` |
 | specific month (e.g. March 2026) | `date >= '2026-03-01' AND date < '2026-04-01'` |
 | specific date range | `date >= 'YYYY-MM-DD' AND date <= 'YYYY-MM-DD'` |
 
@@ -255,10 +255,10 @@ For any user request about a custom time range ("last week", "last 3 days", "thi
 
 Summary by card:
 ```bash
-sqlite3 -header -column $HOME/data/expense.db "
+mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --table expense -e "
 SELECT pm.name AS payment_method,
        COUNT(*) AS txns,
-       printf('¥%,.0f', SUM(t.amount)) AS total
+       CONCAT('¥', FORMAT(SUM(t.amount), 0)) AS total
 FROM transactions t
 JOIN payment_methods pm ON t.payment_method_id = pm.id
 WHERE {DATE_FILTER}
@@ -269,7 +269,7 @@ ORDER BY SUM(t.amount) DESC;
 
 Details:
 ```bash
-sqlite3 -header -column $HOME/data/expense.db "
+mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --table expense -e "
 SELECT t.date, pm.name AS payment_method, t.store, t.amount, t.category
 FROM transactions t
 JOIN payment_methods pm ON t.payment_method_id = pm.id
@@ -280,8 +280,8 @@ ORDER BY t.date DESC, t.amount DESC;
 
 Grand total:
 ```bash
-sqlite3 $HOME/data/expense.db "
-SELECT printf('¥%,.0f', COALESCE(SUM(amount), 0)) AS total
+mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --skip-column-names --batch expense -e "
+SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0)) AS total
 FROM transactions
 WHERE {DATE_FILTER};
 "
@@ -289,8 +289,8 @@ WHERE {DATE_FILTER};
 
 By category:
 ```bash
-sqlite3 -header -column $HOME/data/expense.db "
-SELECT category, COUNT(*) AS txns, printf('¥%,.0f', SUM(amount)) AS total
+mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --table expense -e "
+SELECT category, COUNT(*) AS txns, CONCAT('¥', FORMAT(SUM(amount), 0)) AS total
 FROM transactions
 WHERE {DATE_FILTER}
 GROUP BY category
@@ -300,4 +300,4 @@ ORDER BY SUM(amount) DESC;
 
 Replace `{DATE_FILTER}` with the appropriate clause from the table above.
 
-You can also decide what query to use based on the schema of table `transactions` in `$HOME/data/expense.db`.
+You can also decide what query to use based on the schema of table `transactions` in the `expense` database.

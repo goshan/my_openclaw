@@ -9,19 +9,18 @@ deploy_config.json      # Source of truth for skills and cron jobs
 bins/                   # Deployment and maintenance scripts
 tools/                  # Shared utilities used by skills at runtime
 skills/                 # Skill definitions (SKILL.md) and scripts
-data/                   # Runtime SQLite databases (gitignored)
 backup/                 # Rolling backups, 3 most recent (gitignored)
 env                     # Environment variables file (gitignored)
-dashboard/              # SQLite DB visualization running in another server
+dashboard/              # MySQL DB visualization running in another server
 ```
 
 ## Runtime Environment
 
 - Deployed path on server: `/home/ubuntu/my_openclaw/`
 - Environment loaded from: `/home/ubuntu/my_openclaw/env`
-- Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `GOG_DRIVE_FOLDER_ID`, `SLACK_WEBHOOK_URL`
+- Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `SLACK_WEBHOOK_URL`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`
 - Skills are copied to: `$HOME/.openclaw/workspace/skills/`
-- Databases live in: `$HOME/data/`
+- Databases: MySQL server with databases `mails_monitor` and `expense`
 
 ## Skills
 
@@ -65,7 +64,7 @@ mail_fetch <sender1> [sender2 ...]
 ```
 
 - Uses `gog` CLI for Gmail API access
-- Tracks processed message IDs in `data/mails_monitor.db` to avoid duplicates
+- Tracks processed message IDs in MySQL `mails_monitor` database to avoid duplicates
 - Defaults to fetching emails from last 5 days on first run
 - Outputs path to temp file containing email text, or prints `NO_NEW_EMAILS`
 - Max 20 emails per run
@@ -80,31 +79,33 @@ mail_extract <input.json> [output.txt]
 
 - Handles multipart MIME, base64url decoding, HTML-to-text conversion
 
-### tools/database/sqlite3_exec
+### tools/database/mysql_exec
 
-Python3 script. Runs parameterized SQLite queries safely.
+Python3 script. Runs parameterized MySQL queries safely.
 
 ```bash
-sqlite3_exec <db_file> <query> [arg1 arg2 ...]
+mysql_exec <database_name> <query> [arg1 arg2 ...]
 ```
 
-- Uses `?` placeholders — never concatenate user values directly into queries
-- Required for any SQLite operation in skill scripts to prevent injection
+- First argument is the database name (e.g. `mails_monitor`, `expense`)
+- Uses `%s` placeholders — never concatenate user values directly into queries
+- Reads connection from env vars: `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`
+- Required for any MySQL operation in skill scripts to prevent injection
 
 ## Databases
 
-### data/mails_monitor.db
+### mails_monitor
 
 ```sql
-processed_emails (message_id TEXT PRIMARY KEY, subject, sender, received_at)
-scan_state (sender TEXT PRIMARY KEY, last_scan_at TEXT)
+processed_emails (message_id VARCHAR(255) UNIQUE, subject, sender, received_at DATETIME, processed_at DATETIME)
+scan_state (sender VARCHAR(255) PRIMARY KEY, last_scan_time DATETIME)
 ```
 
-### data/expense.db
+### expense
 
 ```sql
-payment_methods (id INTEGER PRIMARY KEY, name TEXT, notification_sender TEXT)
-transactions (id, payment_method_id, date TEXT, store TEXT, amount REAL, category TEXT, note TEXT, created_at TEXT)
+payment_methods (id INT PRIMARY KEY, name VARCHAR(100), notification_sender VARCHAR(255))
+transactions (id, payment_method_id, date DATE, store VARCHAR(255), amount DECIMAL(12,2), category VARCHAR(100), note TEXT, created_at DATETIME)
 ```
 
 Date format: `YYYY-MM-DD`. Amount in JPY.
@@ -125,20 +126,16 @@ Cron job timezone: `Asia/Tokyo`.
 
 ## Dashboard (Data Visualization)
 
-SQLite databases are synced to a separate dashboard server via Google Drive for visualization in Metabase.
+MySQL databases are connected remotely for visualization in Metabase.
 
-- `tools/drive/drive_sync` — Uploads DB files to Google Drive (deployed to `/usr/local/bin/` by `deploy.sh`).
-- `dashboard/db_pull` — Downloads DB files from Google Drive.
-- `dashboard/docker-compose.yml` — Runs Metabase on port 3000, mounting `$HOME/data/` as `/db-data`.
+- `dashboard/docker-compose.yml` — Runs Metabase on port 4000. Metabase connects to the host MySQL via `host.docker.internal`.
 - `dashboard/README.md` — Full setup guide for the dashboard server.
-- Cron on main server: `drive_sync_dbs` at 4:00 AM uploads DBs to Drive and keep logging to `$HOME/log/drive_sync_dbs.log` (registered via `deploy_config.json`).
-- Cron on dashboard server: set up manually per `dashboard/README.md` to run `db_pull` at 5:00 AM.
-- Both tools use `$GOG_DRIVE_FOLDER_ID` and `$GOG_ACCOUNT` from the `env` file.
 
 ## Conventions
 
 - All scripts use `MY_OPENCLAW_ROOT` to build absolute paths of this repo — never hardcode `/home/ubuntu/my_openclaw/`
 - The `env` file is sourced at the start of each cron job; ensure new env vars are added there
+- Database names `mails_monitor` and `expense` are hardcoded in scripts — do not use env vars for them
 - When adding a new skill: add the directory under `skills/`, add the name to `deploy_config.json`, run `deploy.sh`
 - When modifying a cron schedule: edit `deploy_config.json`, then run `deploy.sh` (it removes old jobs and re-adds)
 - Backups keep only the last 3 — don't rely on backup/ for long-term history; use git

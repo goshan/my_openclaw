@@ -9,7 +9,8 @@ This repo is the single source of truth for all OpenClaw skills, cron jobs, shar
 ## Requirements
 
 - [OpenClaw](https://openclaw.dev) installed and running
-- `sqlite3`, `python3`, `jq`, `curl`, `gog`
+- `mysql-server`, `mysql-client`, `python3`, `python3-pip`, `jq`, `curl`, `gog`
+- Python: `mysql-connector-python` (installed by `setup.sh` via pip)
 - Any skill-specific dependencies (documented per skill)
 - A configured `env` file (see below)
 
@@ -91,6 +92,39 @@ gog gmail labels list
 
 ---
 
+## MySQL Setup
+
+### Install
+
+```bash
+sudo apt update
+sudo apt install -y mysql-server mysql-client
+sudo systemctl enable mysql
+sudo systemctl start mysql
+```
+
+### Create databases and user
+
+Only do this if the Mysql DB is in this server
+
+```bash
+sudo mysql
+```
+
+```sql
+CREATE DATABASE mails_monitor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE expense CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE USER '<user>'@'localhost' IDENTIFIED BY '<password>';
+GRANT ALL PRIVILEGES ON mails_monitor.* TO 'openclaw'@'localhost';
+GRANT ALL PRIVILEGES ON expense.* TO 'openclaw'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+Set the same `<user>`, `<password>` as `MYSQL_USER`, `MYSQL_PASSWORD` in your `env` file.
+
+---
+
 ## Setup
 
 ```bash
@@ -135,16 +169,14 @@ my_openclaw/
 ├── bins/
 │   ├── setup.sh                # Initial setup
 │   ├── deploy.sh               # Deploy skills and cron jobs to OpenClaw
-│   ├── init_db.sh              # Initialize SQLite databases
+│   ├── init_db.sh              # Initialize MySQL databases
 │   └── backup.sh               # Backup skills, crontab, and databases
 ├── tools/                      # Shared utilities deployed to /usr/local/bin/, available to all skills
 │   ├── mail/
 │   │   ├── mail_fetch          # Fetch email messages (bash)
 │   │   └── mail_extract        # Extract text from email JSON (python3)
 │   ├── database/
-│   │   └── sqlite3_exec        # Safe parameterized SQLite runner (python3)
-│   ├── drive/
-│   │   └── drive_sync          # Upload SQLite DBs to Google Drive (bash)
+│   │   └── mysql_exec          # Safe parameterized MySQL runner (python3)
 │   └── skills/
 │       └── expense-track/
 │           ├── expense_add     # Insert a transaction record
@@ -172,17 +204,16 @@ Tools under `tools/` are deployed to `/usr/local/bin/` and available to all skil
 |------|-------------|
 | `tools/mail/mail_fetch` | Fetch new messages from an inbox, with deduplication |
 | `tools/mail/mail_extract` | Convert raw email JSON to plain text |
-| `tools/database/sqlite3_exec` | Run parameterized SQLite queries safely |
-| `tools/drive/drive_sync` | Upload SQLite DB files to Google Drive |
+| `tools/database/mysql_exec` | Run parameterized MySQL queries safely |
 
 ---
 
 ## Data & Databases
 
-Runtime databases live in `$HOME/data/` (outside the repo). Each skill that needs persistence manages its own database. Current databases:
+Databases run on MySQL. Each skill that needs persistence manages its own database. Current databases:
 
-- `$HOME/data/mails_monitor.db` — Email deduplication (processed IDs, last scan time)
-- `$HOME/data/expense.db` — Expense transactions and payment methods
+- `mails_monitor` — Email deduplication (processed IDs, last scan time)
+- `expense` — Expense transactions and payment methods
 
 ---
 
@@ -207,14 +238,17 @@ Stored in `env` file
 | `OPENCLAW_ROOT` | Absolute path to the root of OpenClaw in server |
 | `GOG_KEYRING_PASSWORD` | gog script env for auth |
 | `GOG_ACCOUNT` | gog use this as google account |
-| `GOG_DRIVE_FOLDER_ID` | Google Drive folder ID for DB file sync |
 | `SLACK_WEBHOOK_URL` | Slack incoming webhook URL for reports |
+| `MYSQL_HOST` | MySQL server host (usually `127.0.0.1`) |
+| `MYSQL_PORT` | MySQL server port (usually `3306`) |
+| `MYSQL_USER` | MySQL user |
+| `MYSQL_PASSWORD` | MySQL password |
 
 ---
 
 ## Dashboard
 
-The `dashboard/` directory contains everything needed to run a separate visualization VPS: a script to pull databases from Google Drive, a Metabase Docker setup, and full setup instructions.
+The `dashboard/` directory contains everything needed to run a separate visualization VPS: a Metabase Docker setup that connects to MySQL, and full setup instructions.
 
 See **[dashboard/README.md](dashboard/README.md)** for the complete setup guide.
 

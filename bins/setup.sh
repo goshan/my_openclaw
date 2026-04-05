@@ -4,23 +4,24 @@ set -e
 echo "=== Setup ==="
 echo ""
 
-env_path="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
-source "$env_path"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
 
 # Create folders
 echo "Creating new folders"
 skill_dir="$OPENCLAW_ROOT/workspace/skills"
 echo "  - $skill_dir"
 mkdir -p "$skill_dir"
-data_dir="$HOME/data"
-echo "  - $data_dir"
-mkdir -p "$data_dir"
 log_dir="$HOME/log"
 echo "  - $log_dir"
 mkdir -p "$log_dir"
 tmp_dir="$MY_OPENCLAW_ROOT/tmp"
 echo "  - $tmp_dir"
 mkdir -p "$tmp_dir"
+echo ""
+
+# Install Python dependencies
+echo "Installing Python dependencies"
+pip3 install mysql-connector-python
 echo ""
 
 # Initialize database

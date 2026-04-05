@@ -4,11 +4,10 @@
 # Usage: mail_fetch <sender1> <sender2> ...
 # These <sender>s don't need to be a full mail address, it can be part of address, ex. a postfix from `@` like `@gmail.com`, etc
 # Notes: max fetching number is: 20
-# Database is in `$HOME/data/mails_monitor.db
+# Database is `mails_monitor` on the configured MySQL server
 
 set -e
 
-DB_PATH="$HOME/data/mails_monitor.db"
 TMP_DIR=$(mktemp -d)
 TMP_OUTPUT=$(mktemp)
 
@@ -19,7 +18,7 @@ new_time=$(date +"%Y-%m-%d %H:%M:%S")
 # loop for each sender
 new_count=0
 for sender in  "$@"; do
-  last_time=$(sqlite3 "$DB_PATH" "SELECT last_scan_time FROM scan_state WHERE sender = '$sender' LIMIT 1;")
+  last_time=$(mysql_exec mails_monitor "SELECT last_scan_time FROM scan_state WHERE sender = %s LIMIT 1" "$sender")
   if [[ -z "$last_time" ]]; then
     # default fech from 5 days ago
     last_time=$(date -d "-5 days" +"%Y/%m/%d %H:%M:%S")
@@ -30,15 +29,15 @@ for sender in  "$@"; do
   while read -r item; do
     message_id=$(echo $item | jq -r '.id')
     # skip if already processed before
-    processed=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM processed_emails WHERE message_id = '$message_id';")
+    processed=$(mysql_exec mails_monitor "SELECT COUNT(*) FROM processed_emails WHERE message_id = %s" "$message_id")
     if [ "$processed" -gt 0 ]; then
       continue
     fi
 
     # fetch mail details
     message_content=$(gog gmail get $message_id --json --account $GOG_ACCOUNT)
-    message_subject=$(echo $message_content | jq -r '.headers.subject' | sed "s/'/\\\\'/g")
-    message_sender=$(echo $message_content | jq -r '.headers.from' | sed "s/'/\\\\'/g")
+    message_subject=$(echo $message_content | jq -r '.headers.subject')
+    message_sender=$(echo $message_content | jq -r '.headers.from')
     message_date=$(echo $message_content | jq -r '.headers.date')
 
     # save email content to file
@@ -48,15 +47,14 @@ for sender in  "$@"; do
     echo "" >> $TMP_OUTPUT
 
     # insert to processed_emails table
-    query="INSERT OR IGNORE INTO processed_emails (message_id, subject, sender, received_at) VALUES (?, ?, ?, ?)"
-    sqlite3_exec "$DB_PATH" "$query" "$message_id" "$message_subject" "$message_sender" "$message_date"
+    mysql_exec mails_monitor "INSERT IGNORE INTO processed_emails (message_id, subject, sender, received_at) VALUES (%s, %s, %s, %s)" "$message_id" "$message_subject" "$message_sender" "$message_date"
 
     # update counter
     new_count=$((new_count + 1))
   done < <(gog gmail messages search "from:$sender after:$last_day" --max 20 --json --account $GOG_ACCOUNT | jq -c '.messages[]')
 
   # update last_scan_time (upsert)
-  sqlite3_exec "$DB_PATH" "INSERT OR REPLACE INTO scan_state (sender, last_scan_time) VALUES (?, ?)" "$sender" "$new_time"
+  mysql_exec mails_monitor "REPLACE INTO scan_state (sender, last_scan_time) VALUES (%s, %s)" "$sender" "$new_time"
 done
 
 # Output result

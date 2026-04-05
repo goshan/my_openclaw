@@ -2,6 +2,8 @@
 
 echo "Backup..."
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
+
 OPENCLAW_CRON="$OPENCLAW_ROOT/cron/jobs.json"
 OPENCLAW_SKILL="$OPENCLAW_ROOT/workspace/skills"
 BACKUP_DIR="$MY_OPENCLAW_ROOT/backup"
@@ -33,10 +35,13 @@ cp $OPENCLAW_CRON $openclaw_cron_backup
 printf '%s\n' "$BACKUP_DIR"/openclaw_jobs_*.bak.json | sort -r | tail -n +4 | xargs -I {} rm -- "{}"
 echo "  - openclaw jobs -> $openclaw_cron_backup"
 
-db_backup="$BACKUP_DIR/data_$TIME.bak"
-cp -r "$HOME/data/" "$db_backup"
+db_backup="$BACKUP_DIR/data_$TIME.sql"
+mysqldump -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" \
+  --databases mails_monitor expense \
+  --single-transaction \
+  > "$db_backup"
 # only keep the latest 3 backups
-printf '%s\n' "$BACKUP_DIR"/data_*.bak | sort -r | tail -n +4 | xargs -I {} rm -rf -- "{}"
+printf '%s\n' "$BACKUP_DIR"/data_*.sql | sort -r | tail -n +4 | xargs -I {} rm -- "{}"
 echo "  - database -> $db_backup"
 
 echo "Backup finished"

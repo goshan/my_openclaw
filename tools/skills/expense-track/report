@@ -5,9 +5,9 @@
 
 set -euo pipefail
 
-DB="$HOME/data/expense.db"
+MYSQL_OPTS="-h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER -p$MYSQL_PASSWORD --skip-column-names --batch"
 
-q() { sqlite3 "$DB" "$1"; }
+q() { mysql $MYSQL_OPTS expense -e "$1"; }
 
 card_emoji() {
   case "$1" in
@@ -21,7 +21,7 @@ card_emoji() {
 
 daily_report() {
   local yesterday
-  yesterday=$(q "SELECT date('now', '-1 day', 'localtime');")
+  yesterday=$(q "SELECT CURDATE() - INTERVAL 1 DAY;")
 
   echo "💳 Daily Expense Report — ${yesterday}"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -33,7 +33,7 @@ daily_report() {
     SELECT DISTINCT pm.name
     FROM transactions t
     JOIN payment_methods pm ON t.payment_method_id = pm.id
-    WHERE t.date = date('now', '-1 day', 'localtime')
+    WHERE t.date = CURDATE() - INTERVAL 1 DAY
     ORDER BY pm.id;
   ")
 
@@ -45,23 +45,23 @@ daily_report() {
       emoji=$(card_emoji "$card")
       echo "${emoji} ${card}"
 
-      while IFS='|' read -r store amount category; do
+      while IFS=$'\t' read -r store amount category; do
         echo "  • ${store} — ${amount} (${category})"
       done < <(q "
-        SELECT t.store, printf('¥%,.0f', t.amount), t.category
+        SELECT t.store, CONCAT('¥', FORMAT(t.amount, 0)), t.category
         FROM transactions t
         JOIN payment_methods pm ON t.payment_method_id = pm.id
-        WHERE t.date = date('now', '-1 day', 'localtime')
+        WHERE t.date = CURDATE() - INTERVAL 1 DAY
           AND pm.name = '${card}'
         ORDER BY t.amount DESC;
       ")
 
       local subtotal
       subtotal=$(q "
-        SELECT printf('¥%,.0f', COALESCE(SUM(t.amount), 0))
+        SELECT CONCAT('¥', FORMAT(COALESCE(SUM(t.amount), 0), 0))
         FROM transactions t
         JOIN payment_methods pm ON t.payment_method_id = pm.id
-        WHERE t.date = date('now', '-1 day', 'localtime')
+        WHERE t.date = CURDATE() - INTERVAL 1 DAY
           AND pm.name = '${card}';
       ")
       echo "  Subtotal: ${subtotal}"
@@ -71,9 +71,9 @@ daily_report() {
 
   local yesterday_total
   yesterday_total=$(q "
-    SELECT printf('¥%,.0f', COALESCE(SUM(amount), 0))
+    SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0))
     FROM transactions
-    WHERE date = date('now', '-1 day', 'localtime');
+    WHERE date = CURDATE() - INTERVAL 1 DAY;
   ")
   echo
   echo "💰 Yesterday Total: ${yesterday_total}"
@@ -86,16 +86,16 @@ daily_report() {
 
   local month_grand
   month_grand=$(q "
-    SELECT printf('¥%,.0f', COALESCE(SUM(amount), 0))
+    SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0))
     FROM transactions
-    WHERE date >= date('now', 'start of month', 'localtime');
+    WHERE date >= DATE_FORMAT(CURDATE(), '%Y-%m-01');
   ")
   echo "📊 Month-to-Date (${month_name}): <http://dashboard.goshan.info/dashboard/3-expense?tab=6-month-to-date|${month_grand}>"
 }
 
 monthly_report() {
   local last_month_label
-  last_month_label=$(q "SELECT strftime('%Y-%m', date('now', 'start of month', '-1 month', 'localtime'));")
+  last_month_label=$(q "SELECT DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m');")
   local month_name
   month_name=$(date -j -f "%Y-%m" "$last_month_label" "+%B %Y" 2>/dev/null \
     || date -d "${last_month_label}-01" "+%B %Y" 2>/dev/null \
@@ -103,10 +103,10 @@ monthly_report() {
 
   local grand_total
   grand_total=$(q "
-    SELECT printf('¥%,.0f', COALESCE(SUM(amount), 0))
+    SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0))
     FROM transactions
-    WHERE date >= date('now', 'start of month', '-1 month', 'localtime')
-      AND date < date('now', 'start of month', 'localtime');
+    WHERE date >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+      AND date < DATE_FORMAT(CURDATE(), '%Y-%m-01');
   ")
   echo "📊 Monthly Expense Report — ${month_name}: <http://dashboard.goshan.info/dashboard/3-expense?tab=8-last-month|${grand_total}>"
 }

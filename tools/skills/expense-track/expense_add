@@ -6,18 +6,18 @@ Usage: expense_add <payment_method_id> <date> <store> <amount> <category> <note>
   currency: ISO 4217 currency code (default: JPY). If not JPY, amount is converted to JPY.
             Appends "original amount: CURRENCY RAW" to note automatically.
             If the rate fetch fails, stores the raw amount and marks note with "currency conversion failed".
-Note: Database is located in `$HOME/data/expense.db`
+Note: Database is `expense` on the configured MySQL server.
 """
 
 import os
 import sys
 import json
-import sqlite3
 import argparse
 import urllib.request
 from datetime import datetime
 
-DB_PATH = os.path.expanduser('~/data/expense.db')
+import mysql.connector
+
 EXCHANGE_API = 'https://api.frankfurter.app/latest?from={}&to=JPY'
 
 
@@ -82,16 +82,22 @@ def main():
 
     conn = None
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = mysql.connector.connect(
+            host=os.environ['MYSQL_HOST'],
+            port=int(os.environ.get('MYSQL_PORT', 3306)),
+            user=os.environ['MYSQL_USER'],
+            password=os.environ['MYSQL_PASSWORD'],
+            database='expense',
+        )
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO transactions (payment_method_id, date, store, amount, category, note) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO transactions (payment_method_id, date, store, amount, category, note) VALUES (%s, %s, %s, %s, %s, %s)",
             (args.payment_method_id, date, args.store, amount, args.category, note or None)
         )
         conn.commit()
         print(f"Inserted transaction id={cur.lastrowid}: {args.store} ¥{amount} on {date}")
-    except sqlite3.Error as e:
-        print(f"SQLite Error: {e}", file=sys.stderr)
+    except mysql.connector.Error as e:
+        print(f"MySQL Error: {e}", file=sys.stderr)
         sys.exit(1)
     finally:
         if conn:
