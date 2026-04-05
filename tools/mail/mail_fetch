@@ -38,7 +38,7 @@ for sender in  "$@"; do
     message_content=$(gog gmail get $message_id --json --account $GOG_ACCOUNT)
     message_subject=$(echo $message_content | jq -r '.headers.subject')
     message_sender=$(echo $message_content | jq -r '.headers.from')
-    message_date=$(echo $message_content | jq -r '.headers.date')
+    message_date=$(date -d "$(echo $message_content | jq -r '.headers.date')" +"%Y-%m-%d %H:%M:%S")
 
     # save email content to file
     echo $message_content > "$TMP_DIR/$message_id.json"
