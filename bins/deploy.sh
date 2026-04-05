@@ -3,6 +3,8 @@
 # -f, disable globbing (filename expansion)
 set -ef
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
+
 echo "=== Deploy ==="
 echo ""
 
