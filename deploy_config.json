@@ -33,7 +33,7 @@
         "type": "openclaw",
         "schedule": "0 8 * * *",
         "channel_id": "C0AN6V80G8J",
-        "message": "Generate the daily morning briefing using the morning-briefing skill. Follow all steps in the skill instructions: weather forecast, currency rates, expense report, and real estate metrics. Combine everything into a single formatted message as described in the skill."
+        "message": "Generate the daily morning briefing using the morning-briefing skill. Follow all steps in the skill instructions: weather forecast, currency rates, expense report, and real estate metrics. Combine everything into a single formatted message as described in the skill, last translate the whole message into CHINESE."
       }
     ]
   }

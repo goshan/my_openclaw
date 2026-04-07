@@ -18,8 +18,6 @@ metadata:
 
 Generate a daily morning briefing. Collect all five sections below, then post the combined output as a single message.
 
-**Language: All output must be written in Chinese (中文).**
-
 **Location**: Tokyo, Japan
 
 ---
@@ -141,5 +139,5 @@ Combine all sections into one message using this structure:
   {or "予定なし — no events today."}
 
 🏠 Real Estate Metrics
-{full daily_real_state output, preserving its own formatting}
+{full daily_real_statet output, preserving its own formatting}
 ```
