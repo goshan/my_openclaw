@@ -112,7 +112,7 @@ def step_currency():
             )
             rate = data["rates"]["JPY"]
             if curr_key == "CNY":
-                print(f"  日元 → {currency[curr_key]}: {round(100.0/rate, 1)}")
+                print(f"  日元 → {currency[curr_key]}: {round(100.0/rate, 3)}")
             else:
                 print(f"  {currency[curr_key]} → 日元: {round(rate, 1)}")
         except Exception as e:
