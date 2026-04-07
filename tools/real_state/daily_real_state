@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# daily_real_state — Print today's real estate metrics with location labels
+# and week-over-week, month-over-month, year-over-year comparisons.
+# Always prints to stdout.
+
+set -euo pipefail
+
+MYSQL_OPTS="-h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER --default-character-set=utf8mb4 --skip-column-names --batch"
+
+today=$(date +%Y-%m-%d)
+
+rows=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql $MYSQL_OPTS real_state -e "
+  SELECT
+    l.label,
+    t.average,
+    t.count,
+    ROUND((t.average - w.average) / w.average * 100, 1),
+    ROUND((t.average - m.average) / m.average * 100, 1),
+    ROUND((t.average - y.average) / y.average * 100, 1)
+  FROM daily_metrics t
+  JOIN  locations l ON l.code = t.location_code
+  LEFT JOIN daily_metrics w ON w.location_code = t.location_code AND w.date = t.date - INTERVAL 7 DAY
+  LEFT JOIN daily_metrics m ON m.location_code = t.location_code AND m.date = t.date - INTERVAL 1 MONTH
+  LEFT JOIN daily_metrics y ON y.location_code = t.location_code AND y.date = t.date - INTERVAL 1 YEAR
+  WHERE t.date = '${today}'
+  ORDER BY l.layer, l.label;
+")
+
+if [ -z "$rows" ]; then
+  echo "データ未準備 — real estate metrics not yet available for today."
+  exit 0
+fi
+
+while IFS=$'\t' read -r label avg count wow mom yoy; do
+  fmt_wow=$([ "$wow" = "NULL" ] || [ -z "$wow" ] && echo "—-" || echo "${wow}%")
+  fmt_mom=$([ "$mom" = "NULL" ] || [ -z "$mom" ] && echo "—-" || echo "${mom}%")
+  fmt_yoy=$([ "$yoy" = "NULL" ] || [ -z "$yoy" ] && echo "—-" || echo "${yoy}%")
+  printf "  • %s - avg:¥%s(%s listings) | WoW:%s | MoM:%s | YoY:%s\n" \
+    "$label" "$avg" "$count" "$fmt_wow" "$fmt_mom" "$fmt_yoy"
+done <<< "$rows"

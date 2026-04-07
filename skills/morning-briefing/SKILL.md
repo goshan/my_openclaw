@@ -11,11 +11,14 @@ metadata:
         - gog
         - mysql_exec
         - expense_report
+        - daily_real_state
 ---
 
 # Morning Briefing
 
 Generate a daily morning briefing. Collect all five sections below, then post the combined output as a single message.
+
+**Language: All output must be written in Chinese (中文).**
 
 **Location**: Tokyo, Japan
 
@@ -54,11 +57,12 @@ Interpret the data into a concise, human-readable weather summary.
 
 ## Step 2: Currency Rates
 
-Fetch exchange rates from Frankfurter API:
+Fetch exchange rates from Frankfurter API, including the User-Agent header:
 
 ```
-https://api.frankfurter.app/latest?from=CNY&to=JPY
-https://api.frankfurter.app/latest?from=USD&to=JPY
+GET https://api.frankfurter.app/latest?from=CNY&to=JPY
+GET https://api.frankfurter.app/latest?from=USD&to=JPY
+Headers: User-Agent: Mozilla/5.0
 ```
 
 Each response contains a `rates.JPY` field with the rate. Round to 1 decimal place.
@@ -104,32 +108,11 @@ Each command outputs tab-separated columns: `ID  START  END  SUMMARY`. Use the `
 
 ## Step 5: Real Estate Metrics
 
-Fetch today's data with location labels and period-over-period comparisons:
+Run the script and include its full stdout output as-is:
 
 ```bash
-mysql_exec real_state "
-  SELECT
-    l.label,
-    t.average                                                        AS avg_today,
-    t.count                                                          AS count_today,
-    ROUND((t.average - w.average) / w.average * 100, 1)             AS wow_pct,
-    ROUND((t.average - m.average) / m.average * 100, 1)             AS mom_pct,
-    ROUND((t.average - y.average) / y.average * 100, 1)             AS yoy_pct
-  FROM daily_metrics t
-  JOIN  locations l ON l.code = t.location_code
-  LEFT JOIN daily_metrics w ON w.location_code = t.location_code AND w.date = t.date - INTERVAL 7 DAY
-  LEFT JOIN daily_metrics m ON m.location_code = t.location_code AND m.date = t.date - INTERVAL 1 MONTH
-  LEFT JOIN daily_metrics y ON y.location_code = t.location_code AND y.date = t.date - INTERVAL 1 YEAR
-  WHERE t.date = %s
-  ORDER BY l.layer, l.label
-" "$(date +%Y-%m-%d)"
+daily_real_state
 ```
-
-Columns: `label`, `avg_today`, `count_today`, `wow_pct` (week-over-week %), `mom_pct` (month-over-month %), `yoy_pct` (year-over-year %).
-
-- Format each row as: `{label}: avg ¥{avg_today} ({count_today} listings) | WoW {wow_pct}% MoM {mom_pct}% YoY {yoy_pct}%`
-- If a comparison value is EMPTY or NULL (no data for that period), show `—` instead of a percentage.
-- If the result is empty, print: `データ未準備 — real estate metrics not yet available for today.`
 
 ---
 
@@ -158,5 +141,5 @@ Combine all sections into one message using this structure:
   {or "予定なし — no events today."}
 
 🏠 Real Estate Metrics
-  {table rows, or "データ未準備 — real estate metrics not yet available for today."}
+{full daily_real_state output, preserving its own formatting}
 ```

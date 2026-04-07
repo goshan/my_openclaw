@@ -9,7 +9,8 @@
     "mail/mail_extract",
     "database/mysql_exec",
     "skills/expense-track/expense_add",
-    "skills/expense-track/expense_report"
+    "skills/expense-track/expense_report",
+    "real_state/daily_real_state"
   ],
   "cron": {
     "jobs": [
