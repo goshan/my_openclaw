@@ -31,10 +31,23 @@ if [ -z "$rows" ]; then
   exit 0
 fi
 
+fmt_pct() {
+  local val="$1"
+  if [ "$val" = "NULL" ] || [ -z "$val" ]; then
+    echo "⬜—-"
+  elif awk "BEGIN {exit !($val > 0)}"; then
+    echo "🔴+${val}%"
+  elif awk "BEGIN {exit !($val < 0)}"; then
+    echo "🟢${val}%"
+  else
+    echo "⬜0%"
+  fi
+}
+
 while IFS=$'\t' read -r label avg count wow mom yoy; do
-  fmt_wow=$([ "$wow" = "NULL" ] || [ -z "$wow" ] && echo "—-" || echo "${wow}%")
-  fmt_mom=$([ "$mom" = "NULL" ] || [ -z "$mom" ] && echo "—-" || echo "${mom}%")
-  fmt_yoy=$([ "$yoy" = "NULL" ] || [ -z "$yoy" ] && echo "—-" || echo "${yoy}%")
+  fmt_wow=$(fmt_pct "$wow")
+  fmt_mom=$(fmt_pct "$mom")
+  fmt_yoy=$(fmt_pct "$yoy")
   printf "  • %s - avg:¥%s(%s listings) | WoW:%s | MoM:%s | YoY:%s\n" \
     "$label" "$avg" "$count" "$fmt_wow" "$fmt_mom" "$fmt_yoy"
 done <<< "$rows"
