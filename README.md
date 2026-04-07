@@ -139,11 +139,7 @@ Monitors school-related inboxes, summarizes new emails in Chinese, and posts to 
 
 Tracks spending across credit cards, QR payments, and cash. Supports automated email parsing, receipt/screenshot scanning, manual text entry, and on-demand queries.
 
-### morning-briefing
-
-Daily morning briefing posted at 8am. Combines weather forecast (Tokyo), CNY/USD→JPY rates, expense report, Google Calendar events (personal, もも家, School), and real estate metrics into a single Slack message.
-
-**Cron schedule**: 8am daily (Asia/Tokyo)
+**Cron schedule(Auto email parsing)**: 3am (Asia/Tokyo)
 
 ---
 
@@ -164,16 +160,18 @@ my_openclaw/
 │   │   └── mail_extract        # Extract text from email JSON (python3)
 │   ├── database/
 │   │   └── mysql_exec          # Safe parameterized MySQL runner (python3)
-│   └── skills/
-│       └── expense-track/
-│           ├── expense_add     # Insert a transaction record
-│           └── expense_report  # Generate daily/monthly expense reports (auto-detected)
+│   ├── skills/
+│   │   └── expense-track/
+│   │       ├── expense_add     # Insert a transaction record
+│   │       └── expense_report  # Generate daily/monthly expense reports (auto-detected)
+│   ├── real_state/
+│   │   └── daily_real_state    # Fetch today's real estate metrics as JSON
+│   └── morning-briefing/
+│       └── morning_briefing    # Generate and post the daily morning briefing
 ├── skills/
 │   ├── school-mail-monitor/
 │   │   └── SKILL.md
-│   ├── expenses-track/
-│   │   └── SKILL.md
-│   └── morning-briefing/
+│   └── expenses-track/
 │       └── SKILL.md
 └── dashboard/                  # Dashboard VPS setup (see dashboard/README.md)
     ├── docker-compose.yml      # Metabase Docker setup
@@ -193,6 +191,10 @@ Tools under `tools/` are deployed to `/usr/local/bin/` and available to all skil
 | `tools/mail/mail_fetch` | Fetch new messages from an inbox, with deduplication |
 | `tools/mail/mail_extract` | Convert raw email JSON to plain text |
 | `tools/database/mysql_exec` | Run parameterized MySQL queries safely |
+| `tools/skills/expense-track/expense_add` | Insert an expense transaction record |
+| `tools/skills/expense-track/expense_report` | Generate daily or monthly expense summary (JSON) |
+| `tools/real_state/daily_real_state` | Fetch today's real estate metrics from `real_state` DB |
+| `tools/morning-briefing/morning_briefing` | Generate and post the morning briefing to Slack |
 
 ---
 
@@ -202,6 +204,7 @@ Databases run on MySQL. Each skill that needs persistence manages its own databa
 
 - `mails_monitor` — Email deduplication (processed IDs, last scan time)
 - `expense` — Expense transactions and payment methods
+- `real_state` — Real estate daily metrics by location (populated externally, read by morning briefing)
 
 ---
 
@@ -230,6 +233,7 @@ Stored in `env` file
 | `MYSQL_PORT` | MySQL server port (usually `3306`) |
 | `MYSQL_USER` | MySQL user |
 | `MYSQL_PASSWORD` | MySQL password |
+| `SLACK_WEBHOOK_URL` | Slack Incoming Webhook URL for morning briefing posts |
 
 ---
 

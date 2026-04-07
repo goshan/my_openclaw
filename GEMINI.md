@@ -22,7 +22,7 @@ OpenClaw acts as the execution engine, while this repository defines:
 
 - **System Root**: `/home/ubuntu/my_openclaw/` (stored in `$MY_OPENCLAW_ROOT`)
 - **OpenClaw Home**: `$HOME/.openclaw/workspace/` (stored in `$OPENCLAW_ROOT`)
-- **MySQL**: Remote server at `$MYSQL_HOST`. Databases: `mails_monitor`, `expense`
+- **MySQL**: Remote server at `$MYSQL_HOST`. Databases: `mails_monitor`, `expense`, `real_state`
 - **Tool Path**: `/usr/local/bin/` (all tools in `tools/` are copied here by `deploy.sh`)
 - **Backups**: `/home/ubuntu/my_openclaw/backup/` (rolling 3 most recent backups)
 
@@ -38,7 +38,9 @@ OpenClaw acts as the execution engine, while this repository defines:
 ├── tools/                  # Reusable CLI utilities (deployed to /usr/local/bin/)
 │   ├── mail/               # Gmail fetching and parsing
 │   ├── database/           # Parameterized MySQL execution (mysql_exec)
-│   └── skills/             # Skill-specific command-line helpers
+│   ├── skills/             # Skill-specific command-line helpers (expense_add, expense_report)
+│   ├── real_state/         # daily_real_state: fetch real estate metrics from DB
+│   └── morning-briefing/   # morning_briefing: generate and post daily briefing to Slack
 ├── skills/                 # AI skill definitions
 │   ├── expenses-track/     # Multi-modal expense tracking logic
 │   └── school-mail-monitor/# School inbox summarization logic
@@ -59,6 +61,13 @@ OpenClaw acts as the execution engine, while this repository defines:
 - **`transactions`**: The ledger for all expenses.
   - Columns: `id, payment_method_id, date DATE, store, amount DECIMAL(12,2) (JPY), category, note, created_at DATETIME`
 
+### `real_state` (Real Estate Metrics)
+- **`locations`**: Location reference table.
+  - Columns: `code VARCHAR(50) PK, label VARCHAR(255), layer INT`
+- **`daily_metrics`**: Daily average price and listing count per location.
+  - Columns: `date DATE, location_code VARCHAR(50), average DECIMAL(15,2), count INT` — PK: `(date, location_code)`
+- Populated externally (not written to by skills). Read by `daily_real_state` for the morning briefing.
+
 ## Core Skills
 
 ### 1. Expense Tracking (`expenses-track`)
@@ -66,10 +75,6 @@ OpenClaw acts as the execution engine, while this repository defines:
 - **Multi-modal**: Processes receipt photos (Cash) and PayPay screenshots via AI image analysis.
 - **Categorization**: Auto-assigns categories (Food, Groceries, Shopping, Transport, Dining, etc.) based on store name keywords.
 - **Reporting**: Expense summary included in the morning briefing (auto-detects daily or monthly).
-
-### 3. Morning Briefing (`morning-briefing`)
-- **Schedule**: 8 AM daily.
-- **Content**: Tokyo weather forecast, CNY/USD→JPY exchange rates, expense report (daily or monthly auto-detected), Google Calendar events from 3 calendars (personal, もも家, School), and real estate metrics from `real_state.daily_metrics`.
 
 ### 2. School Mail Monitoring (`school-mail-monitor`)
 - **Target Senders**: Veracross (`veracross.com`) and ISSH (`@issh.ac.jp`).
@@ -96,6 +101,7 @@ Mandatory in `env` file:
 - `$MYSQL_PORT`: MySQL port (default `3306`).
 - `$MYSQL_USER`: MySQL user.
 - `$MYSQL_PASSWORD`: MySQL password.
+- `$SLACK_WEBHOOK_URL`: Slack Incoming Webhook URL for morning briefing posts.
 
 ### 2. SQL Best Practices
 - **NEVER** use direct `mysql` CLI calls with string interpolation in scripts.

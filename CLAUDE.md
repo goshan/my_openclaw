@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This repo is the configuration for an OpenClaw personal automation system running on a Linux server (Ubuntu). It manages two AI skills and their supporting infrastructure.
+This repo is the configuration for an OpenClaw personal automation system running on a Linux server (Ubuntu). It manages two AI skills, a system-level morning briefing script, and their supporting infrastructure.
 
 ## Repository Layout
 
@@ -18,7 +18,7 @@ dashboard/              # MySQL DB visualization running in another server
 
 - Deployed path on server: `/home/ubuntu/my_openclaw/`
 - Environment loaded from: `/home/ubuntu/my_openclaw/env`
-- Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`
+- Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `SLACK_WEBHOOK_URL`
 - Skills are copied to: `$HOME/.openclaw/workspace/skills/`
 - Databases: MySQL (remote server on `$MYSQL_HOST`). Databases: `mails_monitor`, `expense`, and `real_state`. Currently co-hosted on the dashboard server.
 
@@ -51,18 +51,7 @@ Multi-modal expense tracker. Handles email notifications, image uploads (receipt
 - `expense_add <payment_method_id> <date> <store> <amount> <category> <note> [--currency CODE]`
 - `expense_report` (auto-detects daily or monthly based on current date)
 
-**Categories**: Food, Groceries, Shopping, Transport, Dining, Gas/Fuel, Health, Subscription, Utilities, Other
-
-### morning-briefing
-
-**SKILL.md location**: `skills/morning-briefing/SKILL.md`
-
-Daily morning briefing posted at 8am. Aggregates weather, currency rates, expense report, and real estate metrics into a single message.
-
-- Weather: Tokyo forecast (web search)
-- Currency: CNY→JPY and USD→JPY (web search)
-- Expense: runs `expense_report` and includes its output
-- Real estate: queries `real_state.daily_metrics` for today; says data not ready if empty
+**Categories**: Food, Groceries, Shopping, Transport, Dining, Gas/Fuel, Health, Subscription, Utilities, Kids/Education, Other
 
 ## Tools
 
@@ -103,6 +92,57 @@ mysql_exec <database_name> <query> [arg1 arg2 ...]
 - Reads connection from env vars: `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`
 - Required for any MySQL operation in skill scripts to prevent injection
 
+### tools/skills/expense-track/expense_add
+
+Bash script. Inserts a transaction record into the `expense` database.
+
+```bash
+expense_add <payment_method_id> <date> <store> <amount> <category> <note> [--currency CODE]
+```
+
+- `date`: `YYYY/MM/DD` or `YYYY-MM-DD` (with optional ` HH:mm`) — stored as `YYYY-MM-DD`
+- `--currency`: ISO 4217 code (default: JPY). If non-JPY, fetches live rate and converts to JPY automatically; appends original amount to note
+- If rate fetch fails, stores raw amount and marks note with "currency conversion failed"
+
+### tools/skills/expense-track/expense_report
+
+Python3 script. Generates an expense summary and prints JSON to stdout.
+
+```bash
+expense_report
+```
+
+- Auto-detects mode: **daily** on days 2–31 (reports yesterday), **monthly** on the 1st (reports last month)
+- Daily output includes per-card transactions, subtotals, grand total, and month-to-date accumulated total with dashboard URL
+- Monthly output includes per-card totals and grand total with dashboard URL
+
+### tools/real_state/daily_real_state
+
+Python3 script. Fetches today's real estate metrics from the `real_state` database.
+
+```bash
+daily_real_state
+```
+
+- Queries `real_state.daily_metrics` joined with `real_state.locations`
+- Outputs JSON array with label, avg price, count, and DoD/WoW/MoM/YoY change percentages
+- Used by `morning_briefing` to populate the real estate section
+
+### tools/morning-briefing/morning_briefing
+
+Python3 script. Generates and posts the daily morning briefing. Run as a system cron job at 8am Asia/Tokyo.
+
+```bash
+morning_briefing
+```
+
+- Weather: Tokyo forecast (wttr.in API)
+- Currency: CNY→JPY and USD→JPY (frankfurter.app API)
+- Expense: runs `expense_report` and includes its output
+- Calendar: today's events from 3 Google Calendars (personal, もも家, School) via `gog`
+- Real estate: queries `real_state.daily_metrics` for today; says data not ready if empty
+- If `SLACK_WEBHOOK_URL` is set, POSTs output to Slack; otherwise prints to stdout
+
 ## Databases
 
 ### mails_monitor
@@ -120,6 +160,15 @@ transactions (id, payment_method_id, date DATE, store VARCHAR(255), amount DECIM
 ```
 
 Date format: `YYYY-MM-DD`. Amount in JPY.
+
+### real_state
+
+```sql
+locations (code VARCHAR(50) PRIMARY KEY, label VARCHAR(255), layer INT)
+daily_metrics (date DATE, location_code VARCHAR(50), average DECIMAL(15,2), count INT, PRIMARY KEY (date, location_code))
+```
+
+Populated externally (not written to by skills). Read by `daily_real_state` for the morning briefing.
 
 ## Deployment
 
