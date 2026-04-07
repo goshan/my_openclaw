@@ -1,7 +1,8 @@
 {
   "skills": [
     "school-mail-monitor",
-    "expenses-track"
+    "expenses-track",
+    "morning-briefing"
   ],
   "tools": [
     "mail/mail_fetch",
@@ -25,6 +26,13 @@
         "schedule": "0 3 * * *",
         "channel_id": "C0AQDQ257G8",
         "message": "Check for new card emails using the expenses-track skill. Follow the workflow in the MODE 1 instructions to search emails from the target 2 card issuer senders and extract the required data and insert to database. Because the skill has specified how to send the summary to channels, so just follow that instruction, no need to send other information."
+      },
+      {
+        "name": "morning_briefing",
+        "type": "openclaw",
+        "schedule": "0 8 * * *",
+        "channel_id": "C0AN6V80G8J",
+        "message": "Generate the daily morning briefing using the morning-briefing skill. Follow all steps in the skill instructions: weather forecast, currency rates, expense report, and real estate metrics. Combine everything into a single formatted message as described in the skill."
       }
     ]
   }

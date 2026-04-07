@@ -20,7 +20,7 @@ dashboard/              # MySQL DB visualization running in another server
 - Environment loaded from: `/home/ubuntu/my_openclaw/env`
 - Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`
 - Skills are copied to: `$HOME/.openclaw/workspace/skills/`
-- Databases: MySQL (remote server on `$MYSQL_HOST`). Databases: `mails_monitor` and `expense`. Currently co-hosted on the dashboard server.
+- Databases: MySQL (remote server on `$MYSQL_HOST`). Databases: `mails_monitor`, `expense`, and `real_state`. Currently co-hosted on the dashboard server.
 
 ## Skills
 
@@ -52,6 +52,17 @@ Multi-modal expense tracker. Handles email notifications, image uploads (receipt
 - `expense_report` (auto-detects daily or monthly based on current date)
 
 **Categories**: Food, Groceries, Shopping, Transport, Dining, Gas/Fuel, Health, Subscription, Utilities, Other
+
+### morning-briefing
+
+**SKILL.md location**: `skills/morning-briefing/SKILL.md`
+
+Daily morning briefing posted at 8am. Aggregates weather, currency rates, expense report, and real estate metrics into a single message.
+
+- Weather: Tokyo forecast (web search)
+- Currency: CNY→JPY and USD→JPY (web search)
+- Expense: runs `expense_report` and includes its output
+- Real estate: queries `real_state.daily_metrics` for today; says data not ready if empty
 
 ## Tools
 

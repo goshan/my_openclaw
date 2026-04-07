@@ -65,7 +65,11 @@ OpenClaw acts as the execution engine, while this repository defines:
 - **Automation**: Fetches notification emails from `info@tscubic.com` and `statement@vpass.ne.jp` daily.
 - **Multi-modal**: Processes receipt photos (Cash) and PayPay screenshots via AI image analysis.
 - **Categorization**: Auto-assigns categories (Food, Groceries, Shopping, Transport, Dining, etc.) based on store name keywords.
-- **Reporting**: Daily summaries at 8 AM; monthly deep-dives on the 1st of each month.
+- **Reporting**: Expense summary included in the morning briefing (auto-detects daily or monthly).
+
+### 3. Morning Briefing (`morning-briefing`)
+- **Schedule**: 8 AM daily.
+- **Content**: Tokyo weather forecast, CNY/USD→JPY exchange rates, expense report (daily or monthly auto-detected), Google Calendar events from 3 calendars (personal, もも家, School), and real estate metrics from `real_state.daily_metrics`.
 
 ### 2. School Mail Monitoring (`school-mail-monitor`)
 - **Target Senders**: Veracross (`veracross.com`) and ISSH (`@issh.ac.jp`).

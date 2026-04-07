@@ -139,6 +139,12 @@ Monitors school-related inboxes, summarizes new emails in Chinese, and posts to 
 
 Tracks spending across credit cards, QR payments, and cash. Supports automated email parsing, receipt/screenshot scanning, manual text entry, and on-demand queries.
 
+### morning-briefing
+
+Daily morning briefing posted at 8am. Combines weather forecast (Tokyo), CNY/USD→JPY rates, expense report, Google Calendar events (personal, もも家, School), and real estate metrics into a single Slack message.
+
+**Cron schedule**: 8am daily (Asia/Tokyo)
+
 ---
 
 ## Project Structure
@@ -165,7 +171,9 @@ my_openclaw/
 ├── skills/
 │   ├── school-mail-monitor/
 │   │   └── SKILL.md
-│   └── expenses-track/
+│   ├── expenses-track/
+│   │   └── SKILL.md
+│   └── morning-briefing/
 │       └── SKILL.md
 └── dashboard/                  # Dashboard VPS setup (see dashboard/README.md)
     ├── docker-compose.yml      # Metabase Docker setup
