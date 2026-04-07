@@ -55,11 +55,6 @@ def rpad(s, width):
     return s + ' ' * max(0, width - dw(s))
 
 
-def lpad(s, width):
-    """Right-align s in a field of given display width."""
-    return ' ' * max(0, width - dw(s)) + s
-
-
 def fmt_pct(val):
     if val is None:
         return "⬜ —"
@@ -209,7 +204,7 @@ def step_real_estate():
         parts = []
         for i, cell in enumerate(cells):
             # right-align avg/count columns (all except Location)
-            parts.append(rpad(str(cell), col_w[i]) if i == 1 or i == 2 else rpad(str(cell), col_w[i]))
+            parts.append(lpad(str(cell), col_w[i]))
         return "  " + " | ".join(parts)
 
     sep = "  " + "-" * (sum(col_w) + 3 * (len(col_w) - 1))
