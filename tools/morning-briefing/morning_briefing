@@ -50,7 +50,7 @@ def dw(s):
     return w
 
 
-def rpad(s, width):
+def lpad(s, width):
     """Left-align s in a field of given display width."""
     return s + ' ' * max(0, width - dw(s))
 
