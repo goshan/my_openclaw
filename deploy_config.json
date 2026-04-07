@@ -31,10 +31,9 @@
       },
       {
         "name": "morning_briefing",
-        "type": "openclaw",
+        "type": "system",
         "schedule": "0 8 * * *",
-        "channel_id": "C0AN6V80G8J",
-        "message": "Generate the daily morning briefing using the morning-briefing skill. Follow the skill instructions."
+        "task": "morning_briefing"
       }
     ]
   }

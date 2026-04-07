@@ -5,9 +5,12 @@ Outputs a structured English report to stdout.
 The calling skill translates the output to Chinese.
 """
 
+import io
 import json
 import os
 import subprocess
+import sys
+import unicodedata
 import urllib.request
 from datetime import datetime
 
@@ -38,45 +41,73 @@ def divider(title):
     print('━' * 32)
 
 
+def dw(s):
+    """Return the display width of a string, counting CJK/emoji as 2."""
+    w = 0
+    for ch in s:
+        eaw = unicodedata.east_asian_width(ch)
+        w += 2 if eaw in ('W', 'F', 'A') else 1
+    return w
+
+
+def rpad(s, width):
+    """Left-align s in a field of given display width."""
+    return s + ' ' * max(0, width - dw(s))
+
+
+def lpad(s, width):
+    """Right-align s in a field of given display width."""
+    return ' ' * max(0, width - dw(s)) + s
+
+
 def fmt_pct(val):
-    if not val or val == "NULL":
-        return "—-"
+    if val is None:
+        return "⬜—"
     try:
         n = float(val)
-    except ValueError:
-        return val
+    except (ValueError, TypeError):
+        return str(val)
     if n > 0:
         return f"🔴+{val}%"
     elif n < 0:
         return f"🟢{val}%"
     else:
-        return "0%"
+        return "⬜0%"
+
+
+def card_emoji(name):
+    if name.startswith("Lexus"):   return "🔵"
+    if name.startswith("Amazon"):  return "🟠"
+    if name.startswith("PayPay"):  return "🟢"
+    if name.startswith("Cash"):    return "🟣"
+    return "💳"
 
 
 # ── Steps ──────────────────────────────────────────────────────────────────────
 
 def step_weather():
-    divider("🌤 Weather · Tokyo")
+    divider("🌤 天气 · 东京")
     try:
-        data = fetch_json("https://wttr.in/Tokyo?format=j1")
+        data = fetch_json("https://wttr.in/Tokyo?format=j1&lang=zh")
         cur  = data["current_condition"][0]
-        cond = cur["weatherDesc"][0]["value"]
-        print(f"  Condition : {cond}")
-        print(f"  Now       : {cur['temp_C']}°C  (feels like {cur['FeelsLikeC']}°C)")
-        print(f"  Humidity  : {cur['humidity']}%")
-        print(f"  Wind      : {cur['windspeedKmph']} km/h")
+        cond = cur["lang_zh"][0]["value"]
+        print(f"  天气状况 : {cond}")
+        print(f"  当前     : {cur['temp_C']}°C  (feels like {cur['FeelsLikeC']}°C)")
+        print(f"  湿度     : {cur['humidity']}%")
+        print(f"  风速     : {cur['windspeedKmph']} km/h")
         today_w = data["weather"][0]
-        print(f"  High / Low: {today_w['maxtempC']}°C / {today_w['mintempC']}°C")
-        print("  3-day forecast:")
+        print(f"  气温     : {today_w['mintempC']}°C - {today_w['maxtempC']}°C")
+        print("  未来3天  :")
         for day in data["weather"]:
-            fc_cond = day["hourly"][4]["weatherDesc"][0]["value"]  # noon condition
+            # The hourly array has 8 entries in 3-hour intervals. Index 4 = 12:00. Use noon condition as the whole day condition
+            fc_cond = day["hourly"][4]["lang_zh"][0]["value"]
             print(f"    {day['date']}: {fc_cond}, {day['mintempC']}°C – {day['maxtempC']}°C")
     except Exception as e:
         print(f"  [Error: {e}]")
 
 
 def step_currency():
-    divider("💱 Currency Rates")
+    divider("💱 汇率")
     for currency in ["CNY", "USD"]:
         try:
             data = fetch_json(
@@ -90,17 +121,34 @@ def step_currency():
 
 
 def step_expense():
-    divider("💳 Expense Report")
-    output = run("expense_report")
-    if output:
-        for line in output.splitlines():
-            print(f"  {line}")
+    divider("💳 支出报告")
+    try:
+        data = json.loads(run("expense_report"))
+    except Exception as e:
+        print(f"  [Error: {e}]")
+        return
+
+    if data["mode"] == "daily":
+        print(f"  昨日 — {data['date']}")
+        if not data["cards"]:
+            print("  昨日无支出 🎉")
+        else:
+            for card in data["cards"]:
+                print(f"  {card_emoji(card['name'])} {card['name']}")
+                for txn in card["transactions"]:
+                    print(f"    • {txn['store']} — {txn['amount']} ({txn['category']})")
+                print(f"    小计: {card['subtotal']}")
+        print(f"  💰 昨日总计: {data['total']}")
+        print(f"  📊 本月至今 ({data['month']}): {data['accumulated_total']}")
     else:
-        print("  [No output]")
+        print(f"  上月 — {data['month']}")
+        for card in data["cards"]:
+            print(f"  {card_emoji(card['name'])} {card['name']}: {card['total']}")
+        print(f"  💰 总计: {data['grand_total']}")
 
 
 def step_calendar():
-    divider("📅 Today's Calendar")
+    divider("📅 今日安排")
     gog_account = os.environ.get("GOG_ACCOUNT", "")
     events = []
     for cal_id, cal_name in CALENDARS:
@@ -125,49 +173,81 @@ def step_calendar():
     if events:
         for time_str, summary, cal_name, all_day in events:
             if all_day:
-                print(f"  • [All day] {summary}  ({cal_name})")
+                print(f"  • [全天] {summary}  ({cal_name})")
             else:
                 print(f"  • [{time_str}] {summary}  ({cal_name})")
     else:
-        print("  No events today.")
+        print("  [今日无活动]")
 
 
 def step_real_estate():
-    divider("🏠 Real Estate Metrics")
-    output = run("daily_real_state")
-    if not output:
-        print("  データ未準備 — real estate metrics not yet available for today.")
+    divider("🏠 房产指标")
+    try:
+        rows = json.loads(run("daily_real_state"))
+    except Exception as e:
+        print(f"  [Error: {e}]")
         return
-
-    rows = []
-    for line in output.splitlines():
-        parts = line.split("\t")
-        if len(parts) == 7:
-            rows.append(parts)
 
     if not rows:
-        print("  データ未準備 — real estate metrics not yet available for today.")
+        print("  [数据未就绪]")
         return
 
-    lines = []
-    lines.append(f"{'Location':<20} {'Avg Price':>14} {'#':>5} {'DoD':>9} {'WoW':>9} {'MoM':>9} {'YoY':>9}")
-    lines.append("-" * 80)
-    for label, avg, count, dod, wow, mom, yoy in rows:
-        lines.append(f"{label:<20} {'¥'+avg:>14} {count:>5} {fmt_pct(dod):>9} {fmt_pct(wow):>9} {fmt_pct(mom):>9} {fmt_pct(yoy):>9}")
-    print("```")
-    for line in lines:
-        print(line)
-    print("```")
+    formatted = [
+        (r["label"], f"¥{r['avg']}", str(r["count"]),
+         fmt_pct(r["dod"]), fmt_pct(r["wow"]), fmt_pct(r["mom"]), fmt_pct(r["yoy"]))
+        for r in rows
+    ]
+    headers = ("位置", "单价", "数量", "日变化", "周变化", "月变化", "年变化")
+
+    # Compute column widths based on display width
+    col_w = [dw(h) for h in headers]
+    for row in formatted:
+        for i, cell in enumerate(row):
+            col_w[i] = max(col_w[i], dw(str(cell)))
+
+    def render_row(cells):
+        parts = []
+        for i, cell in enumerate(cells):
+            # right-align numeric/pct columns (all except Location)
+            parts.append(lpad(str(cell), col_w[i]) if i > 0 else rpad(str(cell), col_w[i]))
+        return "  " + " | ".join(parts)
+
+    sep = "  " + "-" * (sum(col_w) + 3 * (len(col_w) - 1))
+    print(render_row(headers))
+    print(sep)
+    for row in formatted:
+        print(render_row(row))
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     today = datetime.now().strftime("%Y-%m-%d")
-    print(f"🌅 Good Morning All — {today}")
 
+    buf = io.StringIO()
+    _stdout = sys.stdout
+    sys.stdout = buf
+
+    print(f"<@UQADMDQ65> <@UQ6J77AJX>\n")
+    print(f"🌅 今日早报 — {today}")
     step_weather()
     step_currency()
     step_expense()
     step_calendar()
     step_real_estate()
+
+    sys.stdout = _stdout
+    output = buf.getvalue()
+
+    webhook_url = os.environ.get("SLACK_WEBHOOK_URL")
+    if webhook_url:
+        payload = json.dumps({"text": output}).encode()
+        req = urllib.request.Request(
+            webhook_url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=10)
+    else:
+        print(output, end="")

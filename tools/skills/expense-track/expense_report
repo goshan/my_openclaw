@@ -1,134 +1,122 @@
-#!/usr/bin/env bash
-# expense_report — Generate daily or monthly expense report
-# Auto-detects mode: monthly on 1st of month, daily otherwise
-# Always prints to stdout
+#!/usr/bin/env python3
+"""
+expense_report — Generate daily or monthly expense report as JSON.
+Auto-detects mode: monthly on 1st of month, daily otherwise.
+"""
 
-set -euo pipefail
+import json
+import os
+import mysql.connector
+from datetime import date, timedelta
 
-MYSQL_OPTS="-h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER --default-character-set=utf8mb4 --skip-column-names --batch"
+DASHBOARD_DAILY_URL   = "http://dashboard.goshan.info/dashboard/1-transactions-month-to-date"
+DASHBOARD_MONTHLY_URL = "http://dashboard.goshan.info/dashboard/2-transactions-last-month"
 
-q() { MYSQL_PWD="$MYSQL_PASSWORD" mysql $MYSQL_OPTS expense -e "$1"; }
 
-card_emoji() {
-  case "$1" in
-    Lexus*)   echo "🔵" ;;
-    Amazon*)  echo "🟠" ;;
-    PayPay*)  echo "🟢" ;;
-    Cash*)    echo "🟣" ;;
-    *)        echo "💳" ;;
-  esac
-}
+def get_conn():
+    return mysql.connector.connect(
+        host=os.environ["MYSQL_HOST"],
+        port=int(os.environ.get("MYSQL_PORT", 3306)),
+        user=os.environ["MYSQL_USER"],
+        password=os.environ["MYSQL_PASSWORD"],
+        database="expense",
+        charset="utf8mb4",
+    )
 
-daily_report() {
-  local yesterday
-  yesterday=$(q "SELECT CURDATE() - INTERVAL 1 DAY;")
 
-  echo "Yesterday — ${yesterday}"
-  echo
+def q(cur, sql, params=None):
+    cur.execute(sql, params)
+    return cur.fetchall()
 
-  local cards
-  cards=$(q "
-    SELECT DISTINCT pm.name
-    FROM transactions t
-    JOIN payment_methods pm ON t.payment_method_id = pm.id
-    WHERE t.date = CURDATE() - INTERVAL 1 DAY
-    ORDER BY pm.id;
-  ")
 
-  if [ -z "$cards" ]; then
-    echo "No expenses recorded yesterday. 🎉"
-  else
-    while IFS= read -r card; do
-      local emoji
-      emoji=$(card_emoji "$card")
-      echo "${emoji} ${card}"
+def daily_report(cur, today):
+    yesterday = today - timedelta(days=1)
+    this_month_start = today.replace(day=1)
 
-      while IFS=$'\t' read -r store amount category; do
-        echo "  • ${store} — ${amount} (${category})"
-      done < <(q "
-        SELECT t.store, CONCAT('¥', FORMAT(t.amount, 0)), t.category
+    card_rows = q(cur, """
+        SELECT DISTINCT pm.name
         FROM transactions t
         JOIN payment_methods pm ON t.payment_method_id = pm.id
-        WHERE t.date = CURDATE() - INTERVAL 1 DAY
-          AND pm.name = '${card}'
-        ORDER BY t.amount DESC;
-      ")
+        WHERE t.date = %s
+        ORDER BY pm.id
+    """, (yesterday,))
 
-      local subtotal
-      subtotal=$(q "
-        SELECT CONCAT('¥', FORMAT(COALESCE(SUM(t.amount), 0), 0))
+    cards = []
+    for (card,) in card_rows:
+        txn_rows = q(cur, """
+            SELECT t.store, CONCAT('¥', FORMAT(t.amount, 0)), t.category
+            FROM transactions t
+            JOIN payment_methods pm ON t.payment_method_id = pm.id
+            WHERE t.date = %s AND pm.name = %s
+            ORDER BY t.amount DESC
+        """, (yesterday, card))
+        transactions = [{"store": s, "amount": a, "category": c} for s, a, c in txn_rows]
+
+        subtotal = q(cur, """
+            SELECT CONCAT('¥', FORMAT(COALESCE(SUM(t.amount), 0), 0))
+            FROM transactions t
+            JOIN payment_methods pm ON t.payment_method_id = pm.id
+            WHERE t.date = %s AND pm.name = %s
+        """, (yesterday, card))[0][0]
+
+        cards.append({"name": card, "transactions": transactions, "subtotal": subtotal})
+
+    yesterday_total = q(cur, """
+        SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0))
+        FROM transactions WHERE date = %s
+    """, (yesterday,))[0][0]
+
+    month_to_date = q(cur, """
+        SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0))
+        FROM transactions WHERE date >= %s
+    """, (this_month_start,))[0][0]
+
+    return {
+        "mode":          "daily",
+        "date":          str(yesterday),
+        "cards":         cards,
+        "total":         yesterday_total,
+        "month":         today.strftime("%Y-%m"),
+        "accumulated_total": month_to_date,
+        "dashboard_url": DASHBOARD_DAILY_URL,
+    }
+
+
+def monthly_report(cur, today):
+    last_month_start = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
+    this_month_start = today.replace(day=1)
+    month_name = last_month_start.strftime("%Y-%m")
+
+    card_rows = q(cur, """
+        SELECT pm.name, CONCAT('¥', FORMAT(COALESCE(SUM(t.amount), 0), 0))
         FROM transactions t
         JOIN payment_methods pm ON t.payment_method_id = pm.id
-        WHERE t.date = CURDATE() - INTERVAL 1 DAY
-          AND pm.name = '${card}';
-      ")
-      echo "  Subtotal: ${subtotal}"
-      echo
-    done <<< "$cards"
-  fi
+        WHERE t.date >= %s AND t.date < %s
+        GROUP BY t.payment_method_id, pm.name
+        ORDER BY SUM(t.amount) DESC
+    """, (last_month_start, this_month_start))
+    cards = [{"name": name, "total": total} for name, total in card_rows]
 
-  local yesterday_total
-  yesterday_total=$(q "
-    SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0))
-    FROM transactions
-    WHERE date = CURDATE() - INTERVAL 1 DAY;
-  ")
-  echo "💰 Yesterday Total: ${yesterday_total}"
+    grand_total = q(cur, """
+        SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0))
+        FROM transactions WHERE date >= %s AND date < %s
+    """, (last_month_start, this_month_start))[0][0]
 
-  local month_name
-  month_name=$(date +"%B")
-
-  local month_grand
-  month_grand=$(q "
-    SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0))
-    FROM transactions
-    WHERE date >= DATE_FORMAT(CURDATE(), '%Y-%m-01');
-  ")
-  echo "📊 Month-to-Date (${month_name}): <http://dashboard.goshan.info/dashboard/1-transactions-month-to-date|${month_grand}>"
-}
-
-monthly_report() {
-  local last_month_label
-  last_month_label=$(q "SELECT DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m');")
-  local month_name
-  month_name=$(date -j -f "%Y-%m" "$last_month_label" "+%B %Y" 2>/dev/null \
-    || date -d "${last_month_label}-01" "+%B %Y" 2>/dev/null \
-    || echo "$last_month_label")
-
-  echo "Last Month — ${month_name}"
-  echo
-
-  while IFS=$'\t' read -r card total; do
-    local emoji
-    emoji=$(card_emoji "$card")
-    echo "  ${emoji} ${card}: ${total}"
-  done < <(q "
-    SELECT pm.name, CONCAT('¥', FORMAT(COALESCE(SUM(t.amount), 0), 0))
-    FROM transactions t
-    JOIN payment_methods pm ON t.payment_method_id = pm.id
-    WHERE t.date >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
-      AND t.date < DATE_FORMAT(CURDATE(), '%Y-%m-01')
-    GROUP BY t.payment_method_id, pm.name
-    ORDER BY SUM(t.amount) DESC;
-  ")
-
-  local grand_total
-  grand_total=$(q "
-    SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0))
-    FROM transactions
-    WHERE date >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
-      AND date < DATE_FORMAT(CURDATE(), '%Y-%m-01');
-  ")
+    return {
+        "mode":          "monthly",
+        "month":         month_name,
+        "cards":         cards,
+        "grand_total":   grand_total,
+        "dashboard_url": DASHBOARD_MONTHLY_URL,
+    }
 
 
-  echo
-  echo "💰 Total: <http://dashboard.goshan.info/dashboard/2-transactions-last-month|${grand_total}>"
-}
-
-# Auto-detect mode: monthly on 1st of month, daily otherwise
-day_of_month=$(date +%-d)
-if [[ "$day_of_month" == "1" ]]; then
-  monthly_report
-else
-  daily_report
-fi
+if __name__ == "__main__":
+    today = date.today()
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        data = monthly_report(cur, today) if today.day == 1 else daily_report(cur, today)
+    finally:
+        conn.close()
+    print(json.dumps(data, ensure_ascii=False))

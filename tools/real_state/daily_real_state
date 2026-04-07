@@ -1,30 +1,54 @@
-#!/usr/bin/env bash
-# daily_real_state — Print today's real estate metrics as tab-separated values.
-# Columns: label, avg, count, dod_pct, wow_pct, mom_pct, yoy_pct
-# NULL is output as empty string for missing comparison periods.
-# Always prints to stdout.
+#!/usr/bin/env python3
+"""
+daily_real_state — Print today's real estate metrics as a JSON array.
+Each object: label, avg (formatted string), count, dod/wow/mom/yoy (raw floats, null if unavailable).
+"""
 
-set -euo pipefail
+import json
+import os
+import mysql.connector
+from datetime import datetime
 
-MYSQL_OPTS="-h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER --default-character-set=utf8mb4 --skip-column-names --batch"
+def get_conn():
+    return mysql.connector.connect(
+        host=os.environ["MYSQL_HOST"],
+        port=int(os.environ.get("MYSQL_PORT", 3306)),
+        user=os.environ["MYSQL_USER"],
+        password=os.environ["MYSQL_PASSWORD"],
+        database="real_state",
+        charset="utf8mb4",
+    )
 
-today=$(date +%Y-%m-%d)
 
-MYSQL_PWD="$MYSQL_PASSWORD" mysql $MYSQL_OPTS real_state -e "
-  SELECT
-    l.label,
-    FORMAT(ROUND(t.average), 0),
-    t.count,
-    ROUND((t.average - d.average) / d.average * 100, 1),
-    ROUND((t.average - w.average) / w.average * 100, 1),
-    ROUND((t.average - m.average) / m.average * 100, 1),
-    ROUND((t.average - y.average) / y.average * 100, 1)
-  FROM daily_metrics t
-  JOIN  locations l ON l.code = t.location_code
-  LEFT JOIN daily_metrics d ON d.location_code = t.location_code AND d.date = t.date - INTERVAL 1 DAY
-  LEFT JOIN daily_metrics w ON w.location_code = t.location_code AND w.date = t.date - INTERVAL 7 DAY
-  LEFT JOIN daily_metrics m ON m.location_code = t.location_code AND m.date = t.date - INTERVAL 1 MONTH
-  LEFT JOIN daily_metrics y ON y.location_code = t.location_code AND y.date = t.date - INTERVAL 1 YEAR
-  WHERE t.date = '${today}'
-  ORDER BY l.layer, l.label;
-"
+if __name__ == "__main__":
+    today = datetime.now().strftime("%Y-%m-%d")
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT
+                l.label,
+                FORMAT(ROUND(t.average), 0),
+                t.count,
+                ROUND((t.average - d.average) / d.average * 100, 1),
+                ROUND((t.average - w.average) / w.average * 100, 1),
+                ROUND((t.average - m.average) / m.average * 100, 1),
+                ROUND((t.average - y.average) / y.average * 100, 1)
+            FROM daily_metrics t
+            JOIN  locations l ON l.code = t.location_code
+            LEFT JOIN daily_metrics d ON d.location_code = t.location_code AND d.date = t.date - INTERVAL 1 DAY
+            LEFT JOIN daily_metrics w ON w.location_code = t.location_code AND w.date = t.date - INTERVAL 7 DAY
+            LEFT JOIN daily_metrics m ON m.location_code = t.location_code AND m.date = t.date - INTERVAL 1 MONTH
+            LEFT JOIN daily_metrics y ON y.location_code = t.location_code AND y.date = t.date - INTERVAL 1 YEAR
+            WHERE t.date = %s
+            ORDER BY l.layer, l.label
+        """, (today,))
+        rows = [
+            {"label": label, "avg": avg, "count": count,
+             "dod": dod, "wow": wow, "mom": mom, "yoy": yoy}
+            for label, avg, count, dod, wow, mom, yoy in cur.fetchall()
+        ]
+    finally:
+        conn.close()
+
+    print(json.dumps(rows, ensure_ascii=False))
