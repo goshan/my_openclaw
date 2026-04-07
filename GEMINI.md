@@ -88,7 +88,6 @@ Mandatory in `env` file:
 - `$OPENCLAW_ROOT`: OpenClaw installation root.
 - `$GOG_ACCOUNT`: Gmail account for `gog`.
 - `$GOG_KEYRING_PASSWORD`: gog keyring passphrase.
-- `$SLACK_WEBHOOK_URL`: Webhook for automated reports.
 - `$MYSQL_HOST`: Dashboard server IP (MySQL runs there).
 - `$MYSQL_PORT`: MySQL port (default `3306`).
 - `$MYSQL_USER`: MySQL user.

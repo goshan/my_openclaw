@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# report — Generate daily or monthly expense reports
-# Usage: report daily|monthly
-# Env:   SLACK_WEBHOOK_URL — if set, posts output to Slack instead of stdout
+# expense_report — Generate daily or monthly expense report
+# Auto-detects mode: monthly on 1st of month, daily otherwise
+# Always prints to stdout
 
 set -euo pipefail
 
@@ -27,7 +27,6 @@ daily_report() {
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo
 
-  # Per-card details
   local cards
   cards=$(q "
     SELECT DISTINCT pm.name
@@ -80,7 +79,6 @@ daily_report() {
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo
 
-  # Month-to-date
   local month_name
   month_name=$(date +"%B")
 
@@ -101,6 +99,24 @@ monthly_report() {
     || date -d "${last_month_label}-01" "+%B %Y" 2>/dev/null \
     || echo "$last_month_label")
 
+  echo "📊 Monthly Expense Report — ${month_name}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo
+
+  while IFS=$'\t' read -r card total; do
+    local emoji
+    emoji=$(card_emoji "$card")
+    echo "  ${emoji} ${card}: ${total}"
+  done < <(q "
+    SELECT pm.name, CONCAT('¥', FORMAT(COALESCE(SUM(t.amount), 0), 0))
+    FROM transactions t
+    JOIN payment_methods pm ON t.payment_method_id = pm.id
+    WHERE t.date >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+      AND t.date < DATE_FORMAT(CURDATE(), '%Y-%m-01')
+    GROUP BY t.payment_method_id, pm.name
+    ORDER BY SUM(t.amount) DESC;
+  ")
+
   local grand_total
   grand_total=$(q "
     SELECT CONCAT('¥', FORMAT(COALESCE(SUM(amount), 0), 0))
@@ -108,20 +124,16 @@ monthly_report() {
     WHERE date >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
       AND date < DATE_FORMAT(CURDATE(), '%Y-%m-01');
   ")
-  echo "📊 Monthly Expense Report — ${month_name}: <http://dashboard.goshan.info/dashboard/2-transactions-last-month|${grand_total}>"
+
+
+  echo
+  echo "💰 Total: <http://dashboard.goshan.info/dashboard/2-transactions-last-month|${grand_total}>"
 }
 
-MODE="${1:-}"
-if [[ "$MODE" != "daily" && "$MODE" != "monthly" ]]; then
-  echo "Usage: report daily|monthly" >&2
-  exit 1
-fi
-
-output=$("${MODE}_report")
-
-if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
-  payload=$(jq -n --arg text "$output" '{"text": $text}')
-  curl -s -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
+# Auto-detect mode: monthly on 1st of month, daily otherwise
+day_of_month=$(date +%-d)
+if [[ "$day_of_month" == "1" ]]; then
+  monthly_report
 else
-  echo "$output"
+  daily_report
 fi

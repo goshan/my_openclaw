@@ -139,8 +139,6 @@ Monitors school-related inboxes, summarizes new emails in Chinese, and posts to 
 
 Tracks spending across credit cards, QR payments, and cash. Supports automated email parsing, receipt/screenshot scanning, manual text entry, and on-demand queries.
 
-**Cron schedules**: Card scan at 3am, daily report at 8am, monthly report on the 1st
-
 ---
 
 ## Project Structure
@@ -163,7 +161,7 @@ my_openclaw/
 │   └── skills/
 │       └── expense-track/
 │           ├── expense_add     # Insert a transaction record
-│           └── report          # Generate daily/monthly expense reports
+│           └── expense_report  # Generate daily/monthly expense reports (auto-detected)
 ├── skills/
 │   ├── school-mail-monitor/
 │   │   └── SKILL.md
@@ -220,7 +218,6 @@ Stored in `env` file
 | `OPENCLAW_ROOT` | Absolute path to the root of OpenClaw in server |
 | `GOG_KEYRING_PASSWORD` | gog script env for auth |
 | `GOG_ACCOUNT` | gog use this as google account |
-| `SLACK_WEBHOOK_URL` | Slack incoming webhook URL for reports |
 | `MYSQL_HOST` | MySQL server IP |
 | `MYSQL_PORT` | MySQL server port (usually `3306`) |
 | `MYSQL_USER` | MySQL user |

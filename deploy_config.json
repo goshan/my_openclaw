@@ -8,7 +8,7 @@
     "mail/mail_extract",
     "database/mysql_exec",
     "skills/expense-track/expense_add",
-    "skills/expense-track/report"
+    "skills/expense-track/expense_report"
   ],
   "cron": {
     "jobs": [
@@ -25,18 +25,6 @@
         "schedule": "0 3 * * *",
         "channel_id": "C0AQDQ257G8",
         "message": "Check for new card emails using the expenses-track skill. Follow the workflow in the MODE 1 instructions to search emails from the target 2 card issuer senders and extract the required data and insert to database. Because the skill has specified how to send the summary to channels, so just follow that instruction, no need to send other information."
-      },
-      {
-        "name": "expense_daily_report",
-        "type": "system",
-        "schedule": "0 8 * * *",
-        "task": "report daily"
-      },
-      {
-        "name": "expense_monthly_report",
-        "type": "system",
-        "schedule": "0 8 1 * *",
-        "task": "report monthly"
       }
     ]
   }

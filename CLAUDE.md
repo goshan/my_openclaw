@@ -18,7 +18,7 @@ dashboard/              # MySQL DB visualization running in another server
 
 - Deployed path on server: `/home/ubuntu/my_openclaw/`
 - Environment loaded from: `/home/ubuntu/my_openclaw/env`
-- Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `SLACK_WEBHOOK_URL`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`
+- Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`
 - Skills are copied to: `$HOME/.openclaw/workspace/skills/`
 - Databases: MySQL (remote server on `$MYSQL_HOST`). Databases: `mails_monitor` and `expense`. Currently co-hosted on the dashboard server.
 
@@ -49,7 +49,7 @@ Multi-modal expense tracker. Handles email notifications, image uploads (receipt
 
 **Key scripts**:
 - `expense_add <payment_method_id> <date> <store> <amount> <category> <note> [--currency CODE]`
-- `skills/expenses-track/scripts/report daily|monthly`
+- `expense_report` (auto-detects daily or monthly based on current date)
 
 **Categories**: Food, Groceries, Shopping, Transport, Dining, Gas/Fuel, Health, Subscription, Utilities, Other
 
