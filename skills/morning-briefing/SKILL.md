@@ -9,6 +9,7 @@ metadata:
     requires:
       bins:
         - gog
+        - mysql
         - expense_report
         - daily_real_state
         - morning_briefing

@@ -23,8 +23,7 @@ daily_report() {
   local yesterday
   yesterday=$(q "SELECT CURDATE() - INTERVAL 1 DAY;")
 
-  echo "💳 Yesterday Report — ${yesterday}"
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Yesterday — ${yesterday}"
   echo
 
   local cards
@@ -76,7 +75,6 @@ daily_report() {
   ")
   echo
   echo "💰 Yesterday Total: ${yesterday_total}"
-  echo
 
   local month_name
   month_name=$(date +"%B")
@@ -98,8 +96,7 @@ monthly_report() {
     || date -d "${last_month_label}-01" "+%B %Y" 2>/dev/null \
     || echo "$last_month_label")
 
-  echo "📊 Last Month Report — ${month_name}"
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Last Month — ${month_name}"
   echo
 
   while IFS=$'\t' read -r card total; do

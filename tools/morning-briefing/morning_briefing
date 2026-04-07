@@ -38,6 +38,21 @@ def divider(title):
     print('━' * 32)
 
 
+def fmt_pct(val):
+    if not val or val == "NULL":
+        return "—-"
+    try:
+        n = float(val)
+    except ValueError:
+        return val
+    if n > 0:
+        return f"🔴+{val}%"
+    elif n < 0:
+        return f"🟢{val}%"
+    else:
+        return "0%"
+
+
 # ── Steps ──────────────────────────────────────────────────────────────────────
 
 def step_weather():
@@ -112,7 +127,7 @@ def step_calendar():
             if all_day:
                 print(f"  • [All day] {summary}  ({cal_name})")
             else:
-                print(f"  • {time_str} {summary}  ({cal_name})")
+                print(f"  • [{time_str}] {summary}  ({cal_name})")
     else:
         print("  No events today.")
 
@@ -120,11 +135,24 @@ def step_calendar():
 def step_real_estate():
     divider("🏠 Real Estate Metrics")
     output = run("daily_real_state")
-    if output:
-        for line in output.splitlines():
-            print(f"  {line}")
-    else:
-        print("  [No output]")
+    if not output:
+        print("  データ未準備 — real estate metrics not yet available for today.")
+        return
+
+    rows = []
+    for line in output.splitlines():
+        parts = line.split("\t")
+        if len(parts) == 7:
+            rows.append(parts)
+
+    if not rows:
+        print("  データ未準備 — real estate metrics not yet available for today.")
+        return
+
+    print("| Location | Avg Price | Listings | DoD | WoW | MoM | YoY |")
+    print("|---|---|---|---|---|---|---|")
+    for label, avg, count, dod, wow, mom, yoy in rows:
+        print(f"| {label} | ¥{avg} | {count} | {fmt_pct(dod)} | {fmt_pct(wow)} | {fmt_pct(mom)} | {fmt_pct(yoy)} |")
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
@@ -134,7 +162,7 @@ if __name__ == "__main__":
     print(f"🌅 Good Morning All — {today}")
 
     step_weather()
-    # step_currency()
-    # step_expense()
-    # step_calendar()
-    # step_real_estate()
+    step_currency()
+    step_expense()
+    step_calendar()
+    step_real_estate()

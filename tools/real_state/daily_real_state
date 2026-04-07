@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# daily_real_state — Print today's real estate metrics with location labels
-# and day-over-day, week-over-week, month-over-month, year-over-year comparisons.
+# daily_real_state — Print today's real estate metrics as tab-separated values.
+# Columns: label, avg, count, dod_pct, wow_pct, mom_pct, yoy_pct
+# NULL is output as empty string for missing comparison periods.
 # Always prints to stdout.
 
 set -euo pipefail
@@ -9,7 +10,7 @@ MYSQL_OPTS="-h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER --default-character-set=ut
 
 today=$(date +%Y-%m-%d)
 
-rows=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql $MYSQL_OPTS real_state -e "
+MYSQL_PWD="$MYSQL_PASSWORD" mysql $MYSQL_OPTS real_state -e "
   SELECT
     l.label,
     FORMAT(ROUND(t.average), 0),
@@ -26,31 +27,4 @@ rows=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql $MYSQL_OPTS real_state -e "
   LEFT JOIN daily_metrics y ON y.location_code = t.location_code AND y.date = t.date - INTERVAL 1 YEAR
   WHERE t.date = '${today}'
   ORDER BY l.layer, l.label;
-")
-
-if [ -z "$rows" ]; then
-  echo "データ未準備 — real estate metrics not yet available for today."
-  exit 0
-fi
-
-fmt_pct() {
-  local val="$1"
-  if [ "$val" = "NULL" ] || [ -z "$val" ]; then
-    echo "—-"
-  elif awk "BEGIN {exit !($val > 0)}"; then
-    echo "🔴+${val}%"
-  elif awk "BEGIN {exit !($val < 0)}"; then
-    echo "🟢${val}%"
-  else
-    echo "0%"
-  fi
-}
-
-while IFS=$'\t' read -r label avg count dod wow mom yoy; do
-  fmt_dod=$(fmt_pct "$dod")
-  fmt_wow=$(fmt_pct "$wow")
-  fmt_mom=$(fmt_pct "$mom")
-  fmt_yoy=$(fmt_pct "$yoy")
-  printf "  • %s - avg:¥%s(%s listings) | DoD:%s | WoW:%s | MoM:%s | YoY:%s\n" \
-    "$label" "$avg" "$count" "$fmt_dod" "$fmt_wow" "$fmt_mom" "$fmt_yoy"
-done <<< "$rows"
+"
