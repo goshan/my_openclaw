@@ -12,7 +12,7 @@ today=$(date +%Y-%m-%d)
 rows=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql $MYSQL_OPTS real_state -e "
   SELECT
     l.label,
-    t.average,
+    FORMAT(ROUND(t.average), 0),
     t.count,
     ROUND((t.average - w.average) / w.average * 100, 1),
     ROUND((t.average - m.average) / m.average * 100, 1),
