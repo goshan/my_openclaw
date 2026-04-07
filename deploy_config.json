@@ -1,8 +1,7 @@
 {
   "skills": [
     "school-mail-monitor",
-    "expenses-track",
-    "morning-briefing"
+    "expenses-track"
   ],
   "tools": [
     "mail/mail_fetch",
