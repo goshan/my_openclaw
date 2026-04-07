@@ -5,9 +5,9 @@
 
 set -euo pipefail
 
-MYSQL_OPTS="-h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER -p$MYSQL_PASSWORD --default-character-set=utf8mb4 --skip-column-names --batch"
+MYSQL_OPTS="-h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER --default-character-set=utf8mb4 --skip-column-names --batch"
 
-q() { mysql $MYSQL_OPTS expense -e "$1"; }
+q() { MYSQL_PWD="$MYSQL_PASSWORD" mysql $MYSQL_OPTS expense -e "$1"; }
 
 card_emoji() {
   case "$1" in
