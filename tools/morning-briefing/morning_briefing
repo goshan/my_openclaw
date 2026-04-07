@@ -208,15 +208,17 @@ def step_real_estate():
     def render_row(cells):
         parts = []
         for i, cell in enumerate(cells):
-            # right-align numeric/pct columns (all except Location)
-            parts.append(lpad(str(cell), col_w[i]) if i > 0 else rpad(str(cell), col_w[i]))
+            # right-align avg/count columns (all except Location)
+            parts.append(rpad(str(cell), col_w[i]) if i == 1 or i == 2 else rpad(str(cell), col_w[i]))
         return "  " + " | ".join(parts)
 
     sep = "  " + "-" * (sum(col_w) + 3 * (len(col_w) - 1))
+    print("```")
     print(render_row(headers))
     print(sep)
     for row in formatted:
         print(render_row(row))
+    print("```")
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
