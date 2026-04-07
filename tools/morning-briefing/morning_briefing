@@ -149,10 +149,15 @@ def step_real_estate():
         print("  データ未準備 — real estate metrics not yet available for today.")
         return
 
-    print("| Location | Avg Price | Listings | DoD | WoW | MoM | YoY |")
-    print("|---|---|---|---|---|---|---|")
+    lines = []
+    lines.append(f"{'Location':<20} {'Avg Price':>14} {'#':>5} {'DoD':>9} {'WoW':>9} {'MoM':>9} {'YoY':>9}")
+    lines.append("-" * 80)
     for label, avg, count, dod, wow, mom, yoy in rows:
-        print(f"| {label} | ¥{avg} | {count} | {fmt_pct(dod)} | {fmt_pct(wow)} | {fmt_pct(mom)} | {fmt_pct(yoy)} |")
+        lines.append(f"{label:<20} {'¥'+avg:>14} {count:>5} {fmt_pct(dod):>9} {fmt_pct(wow):>9} {fmt_pct(mom):>9} {fmt_pct(yoy):>9}")
+    print("```")
+    for line in lines:
+        print(line)
+    print("```")
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────

@@ -73,7 +73,6 @@ daily_report() {
     FROM transactions
     WHERE date = CURDATE() - INTERVAL 1 DAY;
   ")
-  echo
   echo "💰 Yesterday Total: ${yesterday_total}"
 
   local month_name
