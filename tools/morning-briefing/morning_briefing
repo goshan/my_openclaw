@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-morning_briefing — Collect all data for the daily morning briefing.
-Outputs a structured English report to stdout.
-The calling skill translates the output to Chinese.
+morning_briefing — Generate the daily morning briefing.
+Aggregates weather, currency rates, expense report, calendar events, and real estate metrics.
+Prints to stdout, or POSTs to Slack if SLACK_WEBHOOK_URL is set.
 """
 
 import io
@@ -62,17 +62,17 @@ def lpad(s, width):
 
 def fmt_pct(val):
     if val is None:
-        return "⬜—"
+        return "⬜ —"
     try:
         n = float(val)
     except (ValueError, TypeError):
         return str(val)
     if n > 0:
-        return f"🔴+{val}%"
+        return f"🔴 +{val}%"
     elif n < 0:
-        return f"🟢{val}%"
+        return f"🟢 {val}%"
     else:
-        return "⬜0%"
+        return "⬜ 0%"
 
 
 def card_emoji(name):
@@ -92,7 +92,7 @@ def step_weather():
         cur  = data["current_condition"][0]
         cond = cur["lang_zh"][0]["value"]
         print(f"  天气状况 : {cond}")
-        print(f"  当前     : {cur['temp_C']}°C  (feels like {cur['FeelsLikeC']}°C)")
+        print(f"  当前     : {cur['temp_C']}°C  (体感: {cur['FeelsLikeC']}°C)")
         print(f"  湿度     : {cur['humidity']}%")
         print(f"  风速     : {cur['windspeedKmph']} km/h")
         today_w = data["weather"][0]
@@ -139,12 +139,12 @@ def step_expense():
                     print(f"    • {txn['store']} — {txn['amount']} ({txn['category']})")
                 print(f"    小计: {card['subtotal']}")
         print(f"  💰 昨日总计: {data['total']}")
-        print(f"  📊 本月至今 ({data['month']}): {data['accumulated_total']}")
+        print(f"  📊 本月至今 ({data['month']}): <{data['dashboard_url']}|{data['accumulated_total']}>")
     else:
         print(f"  上月 — {data['month']}")
         for card in data["cards"]:
             print(f"  {card_emoji(card['name'])} {card['name']}: {card['total']}")
-        print(f"  💰 总计: {data['grand_total']}")
+        print(f"  💰 总计: <{data['dashboard_url']}|{data['grand_total']}")
 
 
 def step_calendar():
@@ -228,7 +228,7 @@ if __name__ == "__main__":
     _stdout = sys.stdout
     sys.stdout = buf
 
-    print(f"<@UQADMDQ65> <@UQ6J77AJX>\n")
+    print(f"<@UQADMDQ65> <@UQ6J77AJX> 早上好！\n")
     print(f"🌅 今日早报 — {today}")
     step_weather()
     step_currency()
