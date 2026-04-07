@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # daily_real_state — Print today's real estate metrics with location labels
-# and week-over-week, month-over-month, year-over-year comparisons.
+# and day-over-day, week-over-week, month-over-month, year-over-year comparisons.
 # Always prints to stdout.
 
 set -euo pipefail
@@ -14,11 +14,13 @@ rows=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql $MYSQL_OPTS real_state -e "
     l.label,
     FORMAT(ROUND(t.average), 0),
     t.count,
+    ROUND((t.average - d.average) / d.average * 100, 1),
     ROUND((t.average - w.average) / w.average * 100, 1),
     ROUND((t.average - m.average) / m.average * 100, 1),
     ROUND((t.average - y.average) / y.average * 100, 1)
   FROM daily_metrics t
   JOIN  locations l ON l.code = t.location_code
+  LEFT JOIN daily_metrics d ON d.location_code = t.location_code AND d.date = t.date - INTERVAL 1 DAY
   LEFT JOIN daily_metrics w ON w.location_code = t.location_code AND w.date = t.date - INTERVAL 7 DAY
   LEFT JOIN daily_metrics m ON m.location_code = t.location_code AND m.date = t.date - INTERVAL 1 MONTH
   LEFT JOIN daily_metrics y ON y.location_code = t.location_code AND y.date = t.date - INTERVAL 1 YEAR
@@ -34,20 +36,21 @@ fi
 fmt_pct() {
   local val="$1"
   if [ "$val" = "NULL" ] || [ -z "$val" ]; then
-    echo "⬜—-"
+    echo "—-"
   elif awk "BEGIN {exit !($val > 0)}"; then
     echo "🔴+${val}%"
   elif awk "BEGIN {exit !($val < 0)}"; then
     echo "🟢${val}%"
   else
-    echo "⬜0%"
+    echo "0%"
   fi
 }
 
-while IFS=$'\t' read -r label avg count wow mom yoy; do
+while IFS=$'\t' read -r label avg count dod wow mom yoy; do
+  fmt_dod=$(fmt_pct "$dod")
   fmt_wow=$(fmt_pct "$wow")
   fmt_mom=$(fmt_pct "$mom")
   fmt_yoy=$(fmt_pct "$yoy")
-  printf "  • %s - avg:¥%s(%s listings) | WoW:%s | MoM:%s | YoY:%s\n" \
-    "$label" "$avg" "$count" "$fmt_wow" "$fmt_mom" "$fmt_yoy"
+  printf "  • %s - avg:¥%s(%s listings) | DoD:%s | WoW:%s | MoM:%s | YoY:%s\n" \
+    "$label" "$avg" "$count" "$fmt_dod" "$fmt_wow" "$fmt_mom" "$fmt_yoy"
 done <<< "$rows"
