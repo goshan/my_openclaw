@@ -54,5 +54,22 @@ SQL
 
 echo "  - expense"
 
+$MYSQL_CMD poker << 'SQL'
+CREATE TABLE IF NOT EXISTS notable_hands (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  position        VARCHAR(2) NOT NULL,
+  hole_cards      VARCHAR(10) NOT NULL,
+  board           VARCHAR(30),
+  action_history  TEXT NOT NULL,
+  pot_bb          DECIMAL(6,1) NOT NULL,
+  result_bb       DECIMAL(6,1) NOT NULL,
+  slumbot_cards   VARCHAR(10),
+  outcome         VARCHAR(10) NOT NULL,
+  played_at       DATETIME NOT NULL DEFAULT NOW()
+) CHARACTER SET utf8mb4;
+SQL
+
+echo "  - poker"
+
 echo "Database initialized"
 echo ""

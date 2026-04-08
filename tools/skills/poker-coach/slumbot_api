@@ -1,0 +1,477 @@
+#!/usr/bin/env python3
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import urllib.error
+import urllib.request
+
+SLUMBOT_BASE = "https://slumbot.com"
+STARTING_STACK = 20000
+SMALL_BLIND = 50
+BIG_BLIND = 100
+BB_CHIP_VALUE = 100  # 1 BB = 100 chips
+NOTABLE_HAND_THRESHOLD_BB = 10
+SESSION_FILE = os.path.join(tempfile.gettempdir(), "slumbot_session.json")
+print(SESSION_FILE)
+
+SUIT_ICONS = {"h": "♥", "d": "♦", "c": "♣", "s": "♠"}
+STREET_NAMES = ["preflop", "flop", "turn", "river"]
+
+
+def format_card(card: str) -> str:
+    """Convert 'Ah' -> 'A♥', 'Ts' -> '10♠', etc."""
+    if not card or len(card) < 2:
+        return card
+    rank = card[:-1]
+    suit = card[-1].lower()
+    if rank == "T":
+        rank = "10"
+    return rank + SUIT_ICONS.get(suit, suit)
+
+
+def parse_cards(raw) -> list:
+    """Normalize Slumbot card field to a list of card strings.
+    Handles both list form ['Ah','Ks'] and concatenated string 'AhKs'.
+    """
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return [c for c in raw if c]
+    # String like 'AhKsTd2c' — split into 2-char chunks
+    s = raw.strip()
+    cards = []
+    i = 0
+    while i < len(s):
+        if i + 1 < len(s) and s[i + 1].lower() in SUIT_ICONS:
+            cards.append(s[i:i + 2])
+            i += 2
+        elif i + 2 < len(s) and s[i:i + 2] == "10":
+            cards.append(s[i:i + 3])
+            i += 3
+        else:
+            cards.append(s[i:i + 2])
+            i += 2
+    return [c for c in cards if c]
+
+
+def tokenize_street(street_str: str) -> list:
+    """Parse a street action string into a list of tokens.
+    Returns list of ('b', amount) or ('f',), ('k',), ('c',) tuples.
+    """
+    tokens = []
+    i = 0
+    while i < len(street_str):
+        ch = street_str[i]
+        if ch == "b":
+            j = i + 1
+            while j < len(street_str) and street_str[j].isdigit():
+                j += 1
+            amount = int(street_str[i + 1:j]) if j > i + 1 else 0
+            tokens.append(("b", amount))
+            i = j
+        elif ch in ("f", "k", "c"):
+            tokens.append((ch,))
+            i += 1
+        else:
+            i += 1
+    return tokens
+
+
+def parse_action_string(action_str: str, client_pos: int,
+                        client_start_stack: int = STARTING_STACK,
+                        slumbot_start_stack: int = STARTING_STACK) -> dict:
+    """Parse Slumbot's full action history string into structured output.
+
+    Empirically verified: client_pos=0 means client is BB (acts second preflop,
+    first postflop). client_pos=1 means client is SB (acts first preflop,
+    second postflop).
+
+    client_start_stack / slumbot_start_stack: stack sizes at the start of this
+    hand (from session cache), used for accurate remaining-stack and max_bet calc.
+
+    Returns a dict with:
+      - parsed_actions: {street_name: [{player, action}, ...]}
+      - pot: current pot in chips
+      - min_bet: minimum raise amount
+      - max_bet: maximum raise (effective stack)
+      - client_in: total chips client has put in this hand
+      - slumbot_in: total chips slumbot has put in this hand
+    """
+    # client_pos=0 → client is BB; client_pos=1 → client is SB/Btn
+    client_is_bb = (client_pos == 0)
+    client_label = "You"
+    slumbot_label = "Slumbot"
+    client_in = 0
+    slumbot_in = 0
+
+    parsed_actions = {}
+    raise_size = BIG_BLIND
+    streets_raw = action_str.split("/") if action_str else [""]
+
+    if client_is_bb:
+        client_label += " (BB)"
+        slumbot_label += " (SB/Btn)"
+        client_in += BIG_BLIND
+        slumbot_in += SMALL_BLIND
+    else:
+        client_label += " (SB/Btn)"
+        slumbot_label += " (BB)"
+        client_in += SMALL_BLIND
+        slumbot_in += BIG_BLIND
+
+    # Track cumulative chips committed by each player (starts with blinds)
+    pot = client_in + slumbot_in
+
+    street_client_in = 0
+    street_slumbot_in = 0
+
+    for street_idx, street_str in enumerate(streets_raw):
+        street_name = STREET_NAMES[street_idx] if street_idx < len(STREET_NAMES) else f"street{street_idx}"
+        tokens = tokenize_street(street_str)
+        actions_out = []
+
+        # init status at the beginning of street
+        if street_idx == 0:
+            # Preflop: SB acts first. SB=Slumbot when client is BB (pos=0).
+            actor_is_client = not client_is_bb
+            # last bet value no matter which player
+            last_bet_to = BIG_BLIND
+            raise_size = 0
+            street_client_in = client_in   # BB already posted
+            street_slumbot_in = slumbot_in  # SB already posted
+        else:
+            # Postflop: BB acts first. BB=client when client_pos=0.
+            actor_is_client = client_is_bb
+            last_bet_to = 0
+            raise_size = 0
+            street_client_in = 0
+            street_slumbot_in = 0
+
+        # go though all actions to update status
+        for token in tokens:
+            player = client_label if actor_is_client else slumbot_label
+            action_code = token[0]
+
+            if action_code == "f":
+                actions_out.append({"player": player, "action": "fold"})
+
+            elif action_code == "k":
+                actions_out.append({"player": player, "action": "check"})
+
+            # bet means raise to
+            # update pot, client_in, slumbot_in, street_client_in, street_slumbot_in, last_bet_to, raise_size
+            elif action_code == "b":
+                bet_to = token[1]
+                if actor_is_client:
+                    chips_added = max(0, bet_to - street_client_in)
+                    street_client_in = bet_to
+                    client_in += chips_added
+                else:
+                    chips_added = max(0, bet_to - street_slumbot_in)
+                    street_slumbot_in = bet_to
+                    slumbot_in += chips_added
+                pot += chips_added
+                raise_size = max(bet_to - last_bet_to, BIG_BLIND)
+                verb = "bet" if last_bet_to == 0 else "raise to"
+                actions_out.append({"player": player, "action": f"{verb} {bet_to}"})
+                last_bet_to = bet_to
+
+            elif action_code == "c":
+                if actor_is_client:
+                    call_amount = max(0, last_bet_to - street_client_in)
+                    street_client_in += call_amount
+                    client_in += call_amount
+                else:
+                    call_amount = max(0, last_bet_to - street_slumbot_in)
+                    street_slumbot_in += call_amount
+                    slumbot_in += call_amount
+                pot += call_amount
+                actions_out.append({"player": player, "action": f"call {call_amount}"})
+
+            # Update the turn in current street
+            actor_is_client = not actor_is_client
+
+        parsed_actions[street_name] = actions_out
+
+    remaining_client = client_start_stack - client_in
+    remaining_slumbot = slumbot_start_stack - slumbot_in
+    # all in as max bet (capped at effective stack)
+    max_bet = min(remaining_client, remaining_slumbot)
+    min_bet = max(last_bet_to + raise_size, BIG_BLIND)
+
+    return {
+        "parsed_actions": parsed_actions,
+        "pot": pot,
+        "min_bet": min_bet,
+        "max_bet": max_bet,
+        "client_in": client_in,
+        "slumbot_in": slumbot_in,
+    }
+
+
+def error_response(msg: str) -> dict:
+    """Return a minimal error dict with all expected fields present."""
+    return {
+        "token": "",
+        "client_pos": "",
+        "hole_cards": [],
+        "board": [],
+        "slumbot_cards": [],
+        "action_history": "",
+        "parsed_actions": {},
+        "pot": 0,
+        "your_stack": STARTING_STACK,
+        "slumbot_stack": STARTING_STACK,
+        "min_bet": None,
+        "max_bet": None,
+        "hand_over": False,
+        "winning": None,
+        "error": msg,
+        "_raw_hole_cards": [],
+        "_raw_board": [],
+        "_raw_slumbot_cards": [],
+    }
+
+
+def parse_response(raw: dict,
+                   client_start_stack: int = STARTING_STACK,
+                   slumbot_start_stack: int = STARTING_STACK) -> dict:
+    """Normalize Slumbot's raw API response into a clean structured dict."""
+    # Surface any API-level error immediately
+    error_msg = raw.get("error_msg") or raw.get("error") or raw.get("message")
+    if error_msg:
+        return error_response(f"API: {str(error_msg)}")
+
+    token = raw.get("token", "")
+    client_pos = raw.get("client_pos")
+    if client_pos is None:
+        return error_response("Missing client_pos in response")
+
+    action_str = raw.get("action", "") or ""
+
+    hole_cards_raw = raw.get("hole_cards") or []
+    hole_cards = parse_cards(hole_cards_raw)
+
+    board_raw = raw.get("board") or []
+    board = parse_cards(board_raw)
+
+    # Slumbot cards revealed at showdown
+    slumbot_cards_raw = raw.get("bot_hole_cards") or raw.get("opponent_hole_cards") or []
+    slumbot_cards = parse_cards(slumbot_cards_raw)
+
+    try:
+        parsed = parse_action_string(action_str, client_pos, client_start_stack, slumbot_start_stack)
+    except Exception as e:
+        return error_response(f"Client: Failed to parse action string '{action_str}': {e}")
+
+    # Hand over
+    winnings = raw.get("winnings", None)
+    hand_over = winnings is not None
+
+    your_stack = client_start_stack - parsed["client_in"]
+    slumbot_stack = slumbot_start_stack - parsed["slumbot_in"]
+
+    result = {
+        "token": token,
+        "client_pos": "BB" if client_pos == 0 else "SB/Btn",
+        "hole_cards": [format_card(c) for c in hole_cards],
+        "board": [format_card(c) for c in board],
+        "slumbot_cards": [format_card(c) for c in slumbot_cards],
+        "action_history": action_str,
+        "parsed_actions": parsed["parsed_actions"],
+        "pot": parsed["pot"],
+        "your_stack": your_stack,
+        "slumbot_stack": slumbot_stack,
+        "min_bet": parsed["min_bet"],
+        "max_bet": parsed["max_bet"],
+        "hand_over": hand_over,
+        "winning": winnings,
+        "error": None,
+        # Pass raw card data for DB saving (unformatted)
+        "_raw_hole_cards": hole_cards,
+        "_raw_board": board,
+        "_raw_slumbot_cards": slumbot_cards,
+    }
+
+    return result
+
+
+def maybe_save_hand(result: dict) -> None:
+    """Auto-save a completed hand to MySQL if hand is over and pot > NOTABLE_HAND_THRESHOLD_BB."""
+    if not result["hand_over"]:
+        return
+    pot_bb = result["pot"] / BB_CHIP_VALUE
+    if pot_bb <= NOTABLE_HAND_THRESHOLD_BB:
+        return
+
+    winning = result.get("winning") or 0
+    if winning > 0:
+        outcome = "win"
+    elif winning < 0:
+        outcome = "lose"
+    else:
+        outcome = "tie"
+
+    result_bb = winning / BB_CHIP_VALUE
+
+    position = result["client_pos"]  # already "SB" or "BB" in output dict
+    hole_cards_str = " ".join(result["_raw_hole_cards"])
+    board_str = " ".join(result["_raw_board"]) if result["_raw_board"] else None
+    action_history = result["action_history"]
+    slumbot_cards_str = " ".join(result["_raw_slumbot_cards"]) if result["_raw_slumbot_cards"] else None
+
+    try:
+        cmd = [
+            "mysql_exec", "poker",
+            "INSERT INTO notable_hands (position, hole_cards, board, action_history, pot_bb, result_bb, slumbot_cards, outcome) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+            position,
+            hole_cards_str,
+            board_str if board_str is not None else "",
+            action_history,
+            str(round(pot_bb, 1)),
+            str(round(result_bb, 1)),
+            slumbot_cards_str if slumbot_cards_str is not None else "",
+            outcome,
+        ]
+        subprocess.run(cmd, check=True, capture_output=True)
+    except Exception as e:
+        print(f"[warn] Failed to save notable hand: {e}", file=sys.stderr)
+
+
+def load_session() -> dict:
+    """Read session state from SESSION_FILE. Returns defaults if missing or invalid."""
+    try:
+        with open(SESSION_FILE) as f:
+            data = json.load(f)
+        return {
+            "token": data.get("token") or None,
+            "your_stack": int(data.get("your_stack", STARTING_STACK)),
+            "slumbot_stack": int(data.get("slumbot_stack", STARTING_STACK)),
+            "hands_played": int(data.get("hands_played", 0)),
+        }
+    except Exception:
+        return {"token": None, "your_stack": STARTING_STACK, "slumbot_stack": STARTING_STACK, "hands_played": 0}
+
+
+def save_session(token: str, your_stack: int, slumbot_stack: int, hands_played: int) -> None:
+    """Write session state to SESSION_FILE. Silent on failure."""
+    try:
+        with open(SESSION_FILE, "w") as f:
+            json.dump({"token": token, "your_stack": your_stack, "slumbot_stack": slumbot_stack, "hands_played": hands_played}, f)
+    except Exception:
+        pass
+
+
+def _http_post(url: str, data: dict) -> dict:
+    """POST JSON to url, return parsed response dict."""
+    body = json.dumps(data).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def new_hand() -> dict:
+    """Start a new hand, continuing the current session token if one exists."""
+    session = load_session()
+    params = {"token": session["token"]} if session["token"] else {}
+    raw = _http_post(f"{SLUMBOT_BASE}/api/new_hand", params)
+    result = parse_response(raw, session["your_stack"], session["slumbot_stack"])
+    if result["error"]:
+        return result
+    # new session, init session data
+    if result["token"]:
+        save_session(result["token"], STARTING_STACK, STARTING_STACK, 0)
+    result["hand_number"] = session["hands_played"] + 1
+    return result
+
+
+def act(action: str) -> dict:
+    """Send an action to Slumbot and return the updated state."""
+    session = load_session()
+    if not session["token"]:
+        return error_response("Client: No active session — run new_hand first")
+    raw = _http_post(f"{SLUMBOT_BASE}/api/act", {"token": session["token"], "incr": action})
+    result = parse_response(raw, session["your_stack"], session["slumbot_stack"])
+    if result["error"]:
+        return result
+    result["hand_number"] = session["hands_played"] + 1
+    # Only persist updated stacks when the hand is over
+    if result["hand_over"]:
+        winning = result["winning"] or 0
+        result["your_stack"] = session["your_stack"] + winning
+        result["slumbot_stack"] = session["slumbot_stack"] - winning
+        result["min_bet"] = None
+        result["max_bet"] = None
+        save_session(session["token"], result["your_stack"], result["slumbot_stack"], result["hand_number"])
+        maybe_save_hand(result)
+    return result
+
+
+def quit_session() -> dict:
+    """End the session: read final state, delete session file, return summary."""
+    session = load_session()
+    try:
+        os.remove(SESSION_FILE)
+    except Exception:
+        pass
+    profit = session["your_stack"] - STARTING_STACK
+    return {
+        "hands_played": session["hands_played"],
+        "your_stack": session["your_stack"],
+        "slumbot_stack": session["slumbot_stack"],
+        "profit": profit,
+        "profit_bb": round(profit / BB_CHIP_VALUE, 1),
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Slumbot API wrapper")
+    subparsers = parser.add_subparsers(dest="command")
+
+    subparsers.add_parser("new_hand", help="Start a new hand (continues session automatically)")
+
+    act_parser = subparsers.add_parser("act", help="Send an action")
+    act_parser.add_argument("action", help="Action: f, k, c, b<amount>")
+
+    subparsers.add_parser("quit", help="End session and print summary")
+
+    args = parser.parse_args()
+
+    try:
+        if args.command == "new_hand":
+            result = new_hand()
+        elif args.command == "act":
+            result = act(args.action)
+        elif args.command == "quit":
+            result = quit_session()
+        else:
+            parser.print_help()
+            sys.exit(0)
+
+        # Remove internal fields before output
+        result.pop("_raw_hole_cards", None)
+        result.pop("_raw_board", None)
+        result.pop("_raw_slumbot_cards", None)
+
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    except urllib.error.URLError as e:
+        print(json.dumps({"error": f"Slumbot API unreachable: {e}"}))
+    except json.JSONDecodeError:
+        print(json.dumps({"error": "Invalid response from Slumbot"}))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+
+
+if __name__ == "__main__":
+    main()

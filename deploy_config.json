@@ -1,7 +1,8 @@
 {
   "skills": [
     "school-mail-monitor",
-    "expenses-track"
+    "expenses-track",
+    "poker-coach"
   ],
   "tools": [
     "mail/mail_fetch",
@@ -9,6 +10,7 @@
     "database/mysql_exec",
     "skills/expense-track/expense_add",
     "skills/expense-track/expense_report",
+    "skills/poker-coach/slumbot_api",
     "real_state/daily_real_state",
     "morning-briefing/morning_briefing"
   ],
