@@ -137,7 +137,7 @@ Show Slumbot's action, then the new prompt.
 
 ### Step 5 — AI Coaching (AFTER EVERY USER ACTION)
 
-This is the core feature. Every time after user takes action and before display update states, always add a coaching block:
+This is the core feature. Every time after user takes action, always add a coaching block about user's action on previous street before display the updated information from slumbot:
 
 ```
 Coach: 👍 / 🤔 / ⚠️
@@ -156,6 +156,8 @@ Emoji guide: 👍 = good play, 🤔 = debatable/interesting, ⚠️ = questionab
 - **Alternative**: If suboptimal, briefly suggest the better line.
 
 Keep coaching concise. Do not lecture. Supportive instructor tone.
+**Before user take action, do give any coach suggestion**
+**Only comment on user's action on previous street, do teach user how to do on the current street**
 
 ### Step 6 — Hand resolution
 
@@ -163,7 +165,7 @@ When `hand_over` is true:
 
 ```
 --- Result ---
-Slumbot shows: J♦  9♠       ← only if slumbot_cards is populated (showdown)
+Slumbot shows: J♦  9♠       ← only if slumbot_cards is populated
 Your cards: A♠  K♥
 Board: 10♥  7♠  2♣  J♦  A♥  ← show full board
 You win 1,200 chips (+12bb)  ← or "You lose 400 chips (–4bb)"
@@ -174,7 +176,6 @@ Deal next hand? (or "quit" to stop)
 ```
 
 - Session P/L: use `your_stack - 20000` (initial stack) to get cumulative session P/L in chips; divide by 100 for bb
-- If Slumbot folded: no `slumbot_cards` to show, just show result
 - Convert `winning` to bb: `winning / 100`
 - Accept "again", "next", "deal", "yes", "y" → deal next hand (go back to Step 1)
 - Accept "quit", "stop", "done", "exit" → go to Step 7
