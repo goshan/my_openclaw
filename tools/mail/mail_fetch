@@ -23,7 +23,7 @@ for sender in  "$@"; do
     # default fech from 5 days ago
     last_time=$(date -d "-5 days" +"%Y/%m/%d %H:%M:%S")
   fi
-  last_day=$(date -d "$last_time" +"%Y/%m/%d")
+  last_day=$(date -d "$last_time 1 days ago" +"%Y/%m/%d")
 
   # fech new emails
   while read -r item; do
