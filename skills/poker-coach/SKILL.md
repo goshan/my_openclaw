@@ -73,21 +73,20 @@ slumbot_api new_hand
 ### Step 2 — Display initial state
 
 ```
---- Hand #N ---
-Position: Big Blind
-Your cards: A♠  K♥
+--- Hand #{hand_number} ---
+Position: {client_pos}
+Your cards: {hole_cards, ex. A♠  K♥}
 
-Slumbot raises to 200
-Pot: 300 | Your stack: 19,900 | Slumbot stack: 19,950
+{last slumbot action in parsed_actions if it's not empty, ex. Slumbot raises to 200}
+Pot: {pot} | Your stack: {your_stack, ex. 19950} | Slumbot stack: {slumbot_stack, ex. 19,900}
 
-Your action? (fold / call 100 / raise 200–20,000)
+Your action? (fold / call 100 / raise {min_bet, ex. 100}–{max_bet, ex. 20,000})
 ```
 
 Display rules:
-- Use `hand_number` from the JSON to display the hand number.
+- For all fields above with `{}`, respect to use value from the JSON to display, don't calculate or assume by yourself.
 - Cards: use the formatted suit icons from the JSON (e.g. `A♠`, `10♥`)
 - Always show pot, your stack, slumbot stack and exact action options with amounts based on the json output
-- Raise range: `min_bet–max_bet` from the JSON
 
 ### Step 3 — Parse user action
 
@@ -136,6 +135,8 @@ Your action? (fold / call 400 / raise 800–19,800)
 If a new street opens with Slumbot acting first (e.g. you're SB, Slumbot is BB on flop):
 Show Slumbot's action, then the new prompt.
 
+Same here, always respect to use value from the JSON to display for all fields above with `{}`, don't calculate or assume by yourself.
+
 ### Step 5 — AI Coaching (AFTER EVERY USER ACTION)
 
 This is the core feature. Every time after user takes action, always add a coaching block about user's action on previous street before display the updated information from slumbot:
@@ -169,16 +170,16 @@ When `hand_over` is true:
 Slumbot shows: J♦  9♠       ← only if slumbot_cards is populated
 Your cards: A♠  K♥
 Board: 10♥  7♠  2♣  J♦  A♥  ← show full board
-You win 1,200 chips (+12bb)  ← or "You lose 400 chips (–4bb)"
+You win {winning, 1,200} chips (+12bb) or "You lose {winning} chips (–4bb)" if {winning} is a negative number
 
-Session: Hand #3 | P/L: +800 chips (+8bb)
+Session: Hand #3 | P/L: {win_so_far, ex. 800} chips (+8bb)
 
 Deal next hand? (or "quit" to stop)
 ```
 
-- Use `wining` instead of `pot` value when displaying `You win` information
-- Session P/L: use `your_stack - 20000` (initial stack) to get cumulative session P/L in chips; divide by 100 for bb
-- Convert `winning` to bb: `winning / 100`
+- Use `wining` instead of `pot` value when displaying `You win` information, to bb: `winning / 100`
+- Session P/L: `{win_so_far} = {your_stack} - 20,000(initial stack)` to get cumulative session P/L in chips; divide by 100 for bb
+- Again, don't calculate or assume the number value by yourself, just use the json output value, it's always correct!
 - Accept "again", "next", "deal", "yes", "y" → deal next hand (go back to Step 1)
 - Accept "quit", "stop", "done", "exit" → go to Step 7
 
@@ -216,3 +217,5 @@ Thanks for playing!
 5. **Invalid action**: If Slumbot returns an error or the response looks malformed (empty cards, pot=150 after multiple streets), inform the user and ask for a different action. Do NOT consume the action.
 
 6. **Multi-action response**: After your action, `parsed_actions` may show Slumbot's response AND a new street starting. Display all of it sequentially before asking for the user's next action.
+
+7. If there is any misalignment for any number value between your assumption and json output during the playing, alway respect and use json value!
