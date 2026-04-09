@@ -39,7 +39,8 @@ Important fields:
 - `client_pos`: "BB" or "SB"
 - `hand_number`: current hand number in this session
 - `hand_over`: true when the hand is finished
-- `winning`: net chip result for you (positive=win, negative=loss), set when hand ends
+- `pot`: the current pot size, when `hand_over` is true, this means how many chips you or slumbot can get, always positive number. Different with `winning`
+- `winning`: net chip result for you (positive=win, negative=loss), set when hand ends, always use this value for P/L calculation
 - `your_stack` / `slumbot_stack`: carry over across hands within a session
 - Cards use Unicode suit icons: ♠ ♥ ♦ ♣
 
@@ -175,6 +176,7 @@ Session: Hand #3 | P/L: +800 chips (+8bb)
 Deal next hand? (or "quit" to stop)
 ```
 
+- Use `wining` instead of `pot` value when displaying `You win` information
 - Session P/L: use `your_stack - 20000` (initial stack) to get cumulative session P/L in chips; divide by 100 for bb
 - Convert `winning` to bb: `winning / 100`
 - Accept "again", "next", "deal", "yes", "y" → deal next hand (go back to Step 1)
