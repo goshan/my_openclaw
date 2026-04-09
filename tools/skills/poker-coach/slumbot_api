@@ -387,7 +387,7 @@ def new_hand() -> dict:
     if result["error"]:
         return result
     # new session, init session data
-    if raw["token"]:
+    if raw.get("token", None):
         save_session(raw["token"], STARTING_STACK, STARTING_STACK, 0)
     return result
 
@@ -467,7 +467,7 @@ def main():
     except json.JSONDecodeError:
         print(json.dumps({"error": "Invalid response from Slumbot"}))
     except Exception as e:
-        print(json.dumps({"error": str(e)}))
+        print(json.dumps({"error": f"{type(e).__name__}: {e}"}))
 
 
 if __name__ == "__main__":
