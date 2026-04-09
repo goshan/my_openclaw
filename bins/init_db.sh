@@ -4,11 +4,11 @@ set -e
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
 
-MYSQL_CMD="MYSQL_PWD='$MYSQL_PASSWORD' mysql -h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER"
+MYSQL_CMD="mysql -h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER"
 
 echo "Init DB..."
 
-$MYSQL_CMD mails_monitor << 'SQL'
+MYSQL_PWD="$MYSQL_PASSWORD" $MYSQL_CMD mails_monitor << 'SQL'
 CREATE TABLE IF NOT EXISTS processed_emails (
   id           INT AUTO_INCREMENT PRIMARY KEY,
   message_id   VARCHAR(125) NOT NULL UNIQUE,
@@ -26,7 +26,7 @@ SQL
 
 echo "  - mails_monitor"
 
-$MYSQL_CMD expense << 'SQL'
+MYSQL_PWD="$MYSQL_PASSWORD" $MYSQL_CMD expense << 'SQL'
 CREATE TABLE IF NOT EXISTS payment_methods (
   id                   INT PRIMARY KEY,
   name                 VARCHAR(100) NOT NULL,
@@ -54,7 +54,7 @@ SQL
 
 echo "  - expense"
 
-$MYSQL_CMD poker << 'SQL'
+MYSQL_PWD="$MYSQL_PASSWORD" $MYSQL_CMD poker << 'SQL'
 CREATE TABLE IF NOT EXISTS notable_hands (
   id              INT AUTO_INCREMENT PRIMARY KEY,
   position        VARCHAR(2) NOT NULL,

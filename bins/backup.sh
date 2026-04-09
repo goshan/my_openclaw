@@ -39,6 +39,7 @@ db_backup="$BACKUP_DIR/data_$TIME.sql"
 MYSQL_PWD="$MYSQL_PASSWORD" mysqldump -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" \
   --databases mails_monitor expense \
   --single-transaction \
+  --column-statistics=0 \
   > "$db_backup"
 # only keep the latest 3 backups
 printf '%s\n' "$BACKUP_DIR"/data_*.sql | sort -r | tail -n +4 | xargs -I {} rm -- "{}"
