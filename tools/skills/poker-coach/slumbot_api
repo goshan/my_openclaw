@@ -140,7 +140,7 @@ def parse_action_string(action_str: str, client_pos: int,
             actor_is_client = not client_is_bb
             # last bet value no matter which player
             last_bet_to = BIG_BLIND
-            raise_size = 0
+            raise_size = BIG_BLIND
             street_client_in = client_in   # BB already posted
             street_slumbot_in = slumbot_in  # SB already posted
         else:
