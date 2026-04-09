@@ -35,8 +35,6 @@ slumbot_api quit
 # Returns: hands_played, your_stack, slumbot_stack, profit, profit_bb
 ```
 
-Session state (token, stacks, hand count) is managed automatically in a temp file — no token handling needed.
-
 Important fields:
 - `client_pos`: "BB" or "SB"
 - `hand_number`: current hand number in this session
@@ -69,8 +67,6 @@ Important fields:
 slumbot_api new_hand
 ```
 
-Session state (token, stacks, hand count) is tracked automatically. Use `hand_number` from the JSON to display the hand number.
-
 ### Step 2 — Display initial state
 
 ```
@@ -85,6 +81,7 @@ Your action? (fold / call 100 / raise 200–20,000)
 ```
 
 Display rules:
+- Use `hand_number` from the JSON to display the hand number.
 - Cards: use the formatted suit icons from the JSON (e.g. `A♠`, `10♥`)
 - Always show pot, your stack, slumbot stack and exact action options with amounts based on the json output
 - Raise range: `min_bet–max_bet` from the JSON

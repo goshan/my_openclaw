@@ -36,7 +36,7 @@ printf '%s\n' "$BACKUP_DIR"/openclaw_jobs_*.bak.json | sort -r | tail -n +4 | xa
 echo "  - openclaw jobs -> $openclaw_cron_backup"
 
 db_backup="$BACKUP_DIR/data_$TIME.sql"
-mysqldump -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" \
+MYSQL_PWD="$MYSQL_PASSWORD" mysqldump -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" \
   --databases mails_monitor expense \
   --single-transaction \
   > "$db_backup"

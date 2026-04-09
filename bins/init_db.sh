@@ -4,7 +4,7 @@ set -e
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/env"
 
-MYSQL_CMD="mysql -h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER -p$MYSQL_PASSWORD"
+MYSQL_CMD="MYSQL_PWD='$MYSQL_PASSWORD' mysql -h$MYSQL_HOST -P$MYSQL_PORT -u$MYSQL_USER"
 
 echo "Init DB..."
 
