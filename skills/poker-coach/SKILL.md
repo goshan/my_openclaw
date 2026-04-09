@@ -106,6 +106,7 @@ slumbot_api act <action>
 ### Step 4 — Display updated state
 
 Parse the response. Show everything that changed since the last display:
+**Always show my cards in the display**
 
 ```
 You call.
@@ -114,6 +115,7 @@ You call.
 Board: 10♥  7♠  2♣
 Slumbot checks.
 
+Your cards: A♠  K♥
 Pot: 600 | Your stack: 19,800 | Slumbot stack: 19,800
 
 Your action? (check / bet 100–19,700)
@@ -124,6 +126,7 @@ If Slumbot raised after your action:
 You check.
 Slumbot bets 400.
 
+Your cards: A♠  K♥
 Pot: 1,200 | Your stack: 19,800 | Slumbot stack: 19,600
 
 Your action? (fold / call 400 / raise 800–19,800)
@@ -134,7 +137,7 @@ Show Slumbot's action, then the new prompt.
 
 ### Step 5 — AI Coaching (AFTER EVERY USER ACTION)
 
-This is the core feature. After displaying the updated state, always add a coaching block:
+This is the core feature. Every time after user takes action and before display update states, always add a coaching block:
 
 ```
 Coach: 👍 / 🤔 / ⚠️
@@ -161,6 +164,7 @@ When `hand_over` is true:
 ```
 --- Result ---
 Slumbot shows: J♦  9♠       ← only if slumbot_cards is populated (showdown)
+Your cards: A♠  K♥
 Board: 10♥  7♠  2♣  J♦  A♥  ← show full board
 You win 1,200 chips (+12bb)  ← or "You lose 400 chips (–4bb)"
 
