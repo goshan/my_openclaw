@@ -180,6 +180,7 @@ Board: 10♥  7♠  2♣  J♦  A♥  ← show full board
 You win {winning, 1,200} chips (+12bb) or "You lose {winning} chips (–4bb)" if {winning} is a negative number
 
 Session: Hand #3 | P/L: {win_so_far, ex. 800} chips (+8bb)
+Your stack: 19,800 | Slumbot stack: 19,600
 
 Deal next hand? (or "quit" to stop)
 ```
