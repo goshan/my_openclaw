@@ -141,6 +141,12 @@ Tracks spending across credit cards, QR payments, and cash. Supports automated e
 
 **Cron schedule(Auto email parsing)**: 3am (Asia/Tokyo)
 
+### poker-coach
+
+Interactive heads-up No-Limit Texas Hold'em against Slumbot (a world-class GTO poker AI) with real-time AI coaching after every action. Triggered on-demand via chat.
+
+**Trigger**: "let's play poker", "poker", "deal me in", or similar
+
 ---
 
 ## Project Structure
@@ -161,9 +167,11 @@ my_openclaw/
 │   ├── database/
 │   │   └── mysql_exec          # Safe parameterized MySQL runner (python3)
 │   ├── skills/
-│   │   └── expense-track/
-│   │       ├── expense_add     # Insert a transaction record
-│   │       └── expense_report  # Generate daily/monthly expense reports (auto-detected)
+│   │   ├── expense-track/
+│   │   │   ├── expense_add     # Insert a transaction record
+│   │   │   └── expense_report  # Generate daily/monthly expense reports (auto-detected)
+│   │   └── poker-coach/
+│   │       └── slumbot_api     # Slumbot HTTP API wrapper with session management
 │   ├── real_state/
 │   │   └── daily_real_state    # Fetch today's real estate metrics as JSON
 │   └── morning-briefing/
@@ -171,7 +179,9 @@ my_openclaw/
 ├── skills/
 │   ├── school-mail-monitor/
 │   │   └── SKILL.md
-│   └── expenses-track/
+│   ├── expenses-track/
+│   │   └── SKILL.md
+│   └── poker-coach/
 │       └── SKILL.md
 └── dashboard/                  # Dashboard VPS setup (see dashboard/README.md)
     ├── docker-compose.yml      # Metabase Docker setup
@@ -195,6 +205,7 @@ Tools under `tools/` are deployed to `/usr/local/bin/` and available to all skil
 | `tools/skills/expense-track/expense_report` | Generate daily or monthly expense summary (JSON) |
 | `tools/real_state/daily_real_state` | Fetch today's real estate metrics from `real_state` DB |
 | `tools/morning-briefing/morning_briefing` | Generate and post the morning briefing to Slack |
+| `tools/skills/poker-coach/slumbot_api` | Slumbot API wrapper for heads-up NLHE with session management |
 
 ---
 
@@ -205,6 +216,7 @@ Databases run on MySQL. Each skill that needs persistence manages its own databa
 - `mails_monitor` — Email deduplication (processed IDs, last scan time)
 - `expense` — Expense transactions and payment methods
 - `real_state` — Real estate daily metrics by location (populated externally, read by morning briefing)
+- `poker` — Notable poker hands (pot > 10BB) auto-saved by `slumbot_api` for case study
 
 ---
 

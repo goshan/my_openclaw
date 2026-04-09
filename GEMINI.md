@@ -22,7 +22,7 @@ OpenClaw acts as the execution engine, while this repository defines:
 
 - **System Root**: `/home/ubuntu/my_openclaw/` (stored in `$MY_OPENCLAW_ROOT`)
 - **OpenClaw Home**: `$HOME/.openclaw/workspace/` (stored in `$OPENCLAW_ROOT`)
-- **MySQL**: Remote server at `$MYSQL_HOST`. Databases: `mails_monitor`, `expense`, `real_state`
+- **MySQL**: Remote server at `$MYSQL_HOST`. Databases: `mails_monitor`, `expense`, `real_state`, `poker`
 - **Tool Path**: `/usr/local/bin/` (all tools in `tools/` are copied here by `deploy.sh`)
 - **Backups**: `/home/ubuntu/my_openclaw/backup/` (rolling 3 most recent backups)
 
@@ -38,12 +38,15 @@ OpenClaw acts as the execution engine, while this repository defines:
 ├── tools/                  # Reusable CLI utilities (deployed to /usr/local/bin/)
 │   ├── mail/               # Gmail fetching and parsing
 │   ├── database/           # Parameterized MySQL execution (mysql_exec)
-│   ├── skills/             # Skill-specific command-line helpers (expense_add, expense_report)
+│   ├── skills/             # Skill-specific command-line helpers
+│   │   ├── expense-track/  # expense_add, expense_report
+│   │   └── poker-coach/    # slumbot_api: Slumbot HTTP API wrapper
 │   ├── real_state/         # daily_real_state: fetch real estate metrics from DB
 │   └── morning-briefing/   # morning_briefing: generate and post daily briefing to Slack
 ├── skills/                 # AI skill definitions
 │   ├── expenses-track/     # Multi-modal expense tracking logic
-│   └── school-mail-monitor/# School inbox summarization logic
+│   ├── school-mail-monitor/# School inbox summarization logic
+│   └── poker-coach/        # Interactive NLHE vs Slumbot with AI coaching
 └── dashboard/              # Dashboard server setup (MySQL + Metabase Docker)
 ```
 
@@ -60,6 +63,11 @@ OpenClaw acts as the execution engine, while this repository defines:
   - `1`: Lexus (VISA), `2`: Amazon (Mastercard), `3`: PayPay (QR), `4`: Cash
 - **`transactions`**: The ledger for all expenses.
   - Columns: `id, payment_method_id, date DATE, store, amount DECIMAL(12,2) (JPY), category, note, created_at DATETIME`
+
+### `poker` (Poker Hand History)
+- **`notable_hands`**: Auto-saved hands with pot > 10BB.
+  - Columns: `id, position VARCHAR(2), hole_cards, board, action_history TEXT, pot_bb DECIMAL(6,1), result_bb DECIMAL(6,1), slumbot_cards, outcome VARCHAR(10), played_at DATETIME`
+  - `position`: `SB` or `BB`; `result_bb`: net P/L in big blinds; `slumbot_cards` NULL on folds
 
 ### `real_state` (Real Estate Metrics)
 - **`locations`**: Location reference table.
@@ -80,6 +88,13 @@ OpenClaw acts as the execution engine, while this repository defines:
 - **Target Senders**: Veracross (`veracross.com`) and ISSH (`@issh.ac.jp`).
 - **Workflow**: Fetches emails, generates 2-4 sentence summaries in **Chinese**, extracts action items/deadlines, and posts to Slack channel `#mail-report`.
 - **Schedule**: 8 AM, 12 PM, 6 PM, 10 PM daily.
+
+### 3. Poker Coach (`poker-coach`)
+- **Trigger**: On-demand via chat ("let's play poker", etc.)
+- **Gameplay**: Heads-up NLHE against Slumbot (GTO AI) via `slumbot_api` tool
+- **Session**: Token, stacks, and hand count persisted automatically in a temp file
+- **Coaching**: AI provides 2–4 sentence analysis after every user action
+- **Auto-save**: Hands with pot > 10BB saved to `poker.notable_hands` for case study
 
 ## Deployment & Maintenance
 
@@ -108,7 +123,7 @@ Mandatory in `env` file:
 - **ALWAYS** use `mysql_exec` for parameterized queries to prevent injection.
   - Usage: `mysql_exec <database_name> <query> [arg1 arg2 ...]`
   - Uses `%s` placeholders: `mysql_exec expense "SELECT * FROM transactions WHERE id = %s" "$id"`
-- Database names (`mails_monitor`, `expense`) are hardcoded in scripts — do not use env vars for them.
+- Database names (`mails_monitor`, `expense`, `poker`) are hardcoded in scripts — do not use env vars for them.
 
 ### 3. Adding New Skills
 1. Create `skills/<new-skill>/SKILL.md`.

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This repo is the configuration for an OpenClaw personal automation system running on a Linux server (Ubuntu). It manages two AI skills, a system-level morning briefing script, and their supporting infrastructure.
+This repo is the configuration for an OpenClaw personal automation system running on a Linux server (Ubuntu). It manages three AI skills, a system-level morning briefing script, and their supporting infrastructure.
 
 ## Repository Layout
 
@@ -20,7 +20,7 @@ dashboard/              # MySQL DB visualization running in another server
 - Environment loaded from: `/home/ubuntu/my_openclaw/env`
 - Key env vars: `MY_OPENCLAW_ROOT`, `GOG_ACCOUNT`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `SLACK_WEBHOOK_URL`
 - Skills are copied to: `$HOME/.openclaw/workspace/skills/`
-- Databases: MySQL (remote server on `$MYSQL_HOST`). Databases: `mails_monitor`, `expense`, and `real_state`. Currently co-hosted on the dashboard server.
+- Databases: MySQL (remote server on `$MYSQL_HOST`). Databases: `mails_monitor`, `expense`, `real_state`, and `poker`. Currently co-hosted on the dashboard server.
 
 ## Skills
 
@@ -52,6 +52,22 @@ Multi-modal expense tracker. Handles email notifications, image uploads (receipt
 - `expense_report` (auto-detects daily or monthly based on current date)
 
 **Categories**: Food, Groceries, Shopping, Transport, Dining, Gas/Fuel, Health, Subscription, Utilities, Kids/Education, Other
+
+### poker-coach
+
+**SKILL.md location**: `skills/poker-coach/SKILL.md`
+
+Interactive heads-up No-Limit Texas Hold'em against Slumbot (GTO poker AI) with real-time coaching. Triggered on-demand by "let's play poker" in chat.
+
+- Tool: `slumbot_api` (wraps Slumbot HTTP API, manages session state automatically)
+- Session state: token, stacks, hand count persisted in a temp file across commands
+- Notable hands (pot > 10BB) auto-saved to `poker.notable_hands` for case study
+- No cron job — purely interactive
+
+**Key script**: `tools/skills/poker-coach/slumbot_api`
+- `slumbot_api new_hand` — start next hand (reuses session token)
+- `slumbot_api act <action>` — send action: `f`=fold, `k`=check, `c`=call, `b<N>`=bet/raise to N
+- `slumbot_api quit` — end session, delete session file, return summary
 
 ## Tools
 
@@ -128,6 +144,22 @@ daily_real_state
 - Outputs JSON array with label, avg price, count, and DoD/WoW/MoM/YoY change percentages
 - Used by `morning_briefing` to populate the real estate section
 
+### tools/skills/poker-coach/slumbot_api
+
+Python3 script. Wraps the Slumbot HTTP API for heads-up NLHE play.
+
+```bash
+slumbot_api new_hand       # Start next hand (continues session automatically)
+slumbot_api act <action>   # Send action: f, k, c, b<amount>
+slumbot_api quit           # End session, print summary
+```
+
+- Session state (token, stacks, hand count) stored in `tempfile.gettempdir()/slumbot_session.json`
+- Token is fixed for the entire session; stacks carry over across hands
+- On `hand_over`: corrects stacks using `winning` field, saves to session file
+- Auto-saves hands with pot > 10BB to `poker.notable_hands` via `mysql_exec`
+- Output JSON includes `hand_number`, `client_pos` ("BB"/"SB"), Unicode card icons (♠♥♦♣)
+
 ### tools/morning-briefing/morning_briefing
 
 Python3 script. Generates and posts the daily morning briefing. Run as a system cron job at 8am Asia/Tokyo.
@@ -170,6 +202,16 @@ daily_metrics (date DATE, location_code VARCHAR(50), average DECIMAL(15,2), coun
 
 Populated externally (not written to by skills). Read by `daily_real_state` for the morning briefing.
 
+### poker
+
+```sql
+notable_hands (id, position VARCHAR(2), hole_cards VARCHAR(10), board VARCHAR(30), action_history TEXT,
+               pot_bb DECIMAL(6,1), result_bb DECIMAL(6,1), slumbot_cards VARCHAR(10),
+               outcome VARCHAR(10), played_at DATETIME)
+```
+
+Auto-populated by `slumbot_api` when a hand ends with pot > 10BB. `position` is `SB` or `BB`. `result_bb` is net P/L in big blinds. `slumbot_cards` is NULL on folds (no showdown).
+
 ## Deployment
 
 ```bash
@@ -195,7 +237,7 @@ The dashboard server serves a dual role: it hosts MySQL (the primary database th
 
 - All scripts use `MY_OPENCLAW_ROOT` to build absolute paths of this repo — never hardcode `/home/ubuntu/my_openclaw/`
 - The `env` file is sourced at the start of each cron job; ensure new env vars are added there
-- Database names `mails_monitor` and `expense` are hardcoded in scripts — do not use env vars for them
+- Database names `mails_monitor`, `expense`, and `poker` are hardcoded in scripts — do not use env vars for them
 - When adding a new skill: add the directory under `skills/`, add the name to `deploy_config.json`, run `deploy.sh`
 - When modifying a cron schedule: edit `deploy_config.json`, then run `deploy.sh` (it removes old jobs and re-adds)
 - Backups keep only the last 3 — don't rely on backup/ for long-term history; use git
