@@ -124,6 +124,9 @@ Your action? (check / bet 100–19,700)
 If Slumbot raised after your action:
 ```
 You check.
+
+--- Flop ---
+Board: 10♥  7♠  2♣
 Slumbot bets 400.
 
 Your cards: A♠  K♥
@@ -132,10 +135,14 @@ Pot: 1,200 | Your stack: 19,800 | Slumbot stack: 19,600
 Your action? (fold / call 400 / raise 800–19,800)
 ```
 
-If a new street opens with Slumbot acting first (e.g. you're SB, Slumbot is BB on flop):
-Show Slumbot's action, then the new prompt.
-
 Same here, always respect to use value from the JSON to display for all fields above with `{}`, don't calculate or assume by yourself.
+
+**Acting order:**
+- In this heads up game, only SB(also act as Btn in postflop) and BB 2 players
+- In preflop, SB/Btn act firstly, then BB
+- But in postflop(flop, turn, river), the order got changed, BB act first, then SB/Btn
+- Remeber this order and apply to all streets
+- Basically slumbot_api will show slumbot's action in the json output immediately after user's action, so you can always treat as waiting for user's action when updating state
 
 ### Step 5 — AI Coaching (AFTER EVERY USER ACTION)
 
