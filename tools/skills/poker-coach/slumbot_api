@@ -17,7 +17,6 @@ BIG_BLIND = 100
 BB_CHIP_VALUE = 100  # 1 BB = 100 chips
 NOTABLE_HAND_THRESHOLD_BB = 10
 SESSION_FILE = os.path.join(tempfile.gettempdir(), "slumbot_session.json")
-print(SESSION_FILE)
 
 SUIT_ICONS = {"h": "♥", "d": "♦", "c": "♣", "s": "♠"}
 STREET_NAMES = ["preflop", "flop", "turn", "river"]
