@@ -387,8 +387,8 @@ def new_hand() -> dict:
     if result["error"]:
         return result
     # new session, init session data
-    if result["token"]:
-        save_session(result["token"], STARTING_STACK, STARTING_STACK, 0)
+    if raw["token"]:
+        save_session(raw["token"], STARTING_STACK, STARTING_STACK, 0)
     return result
 
 
