@@ -43,6 +43,8 @@ Important fields:
 - `your_stack` / `slumbot_stack`: carry over across hands within a session
 - Cards use Unicode suit icons: ♠ ♥ ♦ ♣
 
+This script can handle token correctly, so you don't need to check it and it will not be rendered in output.
+
 ---
 
 ## WORKFLOW: Start Session
