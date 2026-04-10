@@ -48,6 +48,34 @@ This script can handle token correctly, so you don't need to check it and it wil
 
 ---
 
+## Poker Heads up rules
+
+### Acting Order and Actions you can take
+
+In this heads up game, only SB(**also act as Btn in postflop**) and BB 2 players
+There are 4 street in one hand: Preflop, Flop, Turn, river.
+
+- In preflop
+  - SB/Btn act firstly
+    - He has already put 50 chips as small blind, now he can call 50 to a big blind or raise to a higher value
+  - Then BB
+    - If SB/Btn player just called, then you can check or even bet more
+    - If SB/Btn player raised, you can call or even bet more, then action turn of this street goes to him again until one of you called. 
+- But in postflop(flop, turn, river), the order got changed
+  - BB act first, he can check or bet
+  - Then SB/Btn
+    - If BB player just checked, then you can check again to see next street, or bet
+    - If BB player raised, you can call it or even bet more, then action turn of this street goes to him gain until one of you called. Then go to next street to see a new board card.
+- Anyone can fold in their action, then game ends immeditely and the player who fold his cards will lose the game.
+
+### In the game of this skill  
+
+**Remeber this order and actions and apply to all streets**
+
+Basically slumbot_api will show slumbot's action in the json output immediately after user's action, so you can always treat as waiting for user's action when updating state
+
+---
+
 ## WORKFLOW: Start Session
 
 **Trigger**: User says "let's play poker", "poker", "deal me in", "play a hand", or similar.
@@ -137,13 +165,6 @@ Your action? (fold / call 400 / raise 800–19,800)
 
 Same here, always respect to use value from the JSON to display for all fields above with `{}`, don't calculate or assume by yourself.
 
-**Acting order:**
-- In this heads up game, only SB(also act as Btn in postflop) and BB 2 players
-- In preflop, SB/Btn act firstly, then BB
-- But in postflop(flop, turn, river), the order got changed, BB act first, then SB/Btn
-- Remeber this order and apply to all streets
-- Basically slumbot_api will show slumbot's action in the json output immediately after user's action, so you can always treat as waiting for user's action when updating state
-
 ### Step 5 — AI Coaching (AFTER EVERY USER ACTION)
 
 This is the core feature. Every time after user takes action, always add a coaching block about user's action on previous street before display the updated information from slumbot:
@@ -156,13 +177,9 @@ Coach: 👍 / 🤔 / ⚠️
 Emoji guide: 👍 = good play, 🤔 = debatable/interesting, ⚠️ = questionable or losing play.
 
 **What to cover** (choose the most relevant 2–4 points for this specific action):
-- **Hand strength**: How strong is your hand vs. this board?
-- **Position**: How does your position (SB/BB) affect this decision?
-- **Pot odds**: For calls — are you getting the right price?
-- **Bet sizing**: Is the size appropriate? Too small = not enough value/fold equity. Too large = polarized range needed.
 - **Range**: What hands does this play represent? Is it balanced?
-- **Against Slumbot**: It plays near-GTO. Exploitative deviations are risky — note when the play relies on exploiting a specific weakness.
-- **Alternative**: If suboptimal, briefly suggest the better line.
+- **Bet sizing**: Is the size appropriate? Too small = not enough value/fold equity. Too large = polarized range needed.
+- **GTO frequency**: (This is the most one that you should coach) If playing GTO, what's the suggested actions and their frequency
 
 Keep coaching concise. Do not lecture. Supportive instructor tone.
 **Before user take action, do give any coach suggestion**
