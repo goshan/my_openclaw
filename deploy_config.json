@@ -33,7 +33,7 @@
       {
         "name": "morning_briefing",
         "type": "system",
-        "schedule": "0 8 * * *",
+        "schedule": "30 8 * * *",
         "task": "morning_briefing"
       }
     ]
