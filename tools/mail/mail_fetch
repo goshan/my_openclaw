@@ -10,7 +10,7 @@ set -e
 
 TMP_DIR=$(mktemp -d)
 TMP_OUTPUT=$(mktemp)
-TMP_LOG=$(mktemp)
+TMP_LOG="${TMP_DIR}.log"
 
 # fetch last execution time
 new_time=$(date +"%Y-%m-%d %H:%M:%S")
@@ -19,24 +19,26 @@ new_time=$(date +"%Y-%m-%d %H:%M:%S")
 # loop for each sender
 new_count=0
 for sender in  "$@"; do
-  last_time=$(mysql_exec mails_monitor "SELECT last_scan_time FROM scan_state WHERE sender = %s LIMIT 1" "$sender" 2>>$TMP_LOG)
+  last_time=$(mysql_exec mails_monitor "SELECT last_scan_time FROM scan_state WHERE sender = %s LIMIT 1" "$sender")
   if [[ -z "$last_time" ]]; then
     # default fech from 5 days ago
     last_time=$(date -d "-5 days" +"%Y/%m/%d %H:%M:%S")
   fi
   last_day=$(date -d "$last_time 1 days ago" +"%Y/%m/%d")
+  echo "last_time: $last_time" >> $TMP_LOG
+  echo "last_day: $last_day" >> $TMP_LOG
 
   # fech new emails
   while read -r item; do
     message_id=$(echo $item | jq -r '.id')
     # skip if already processed before
-    processed=$(mysql_exec mails_monitor "SELECT COUNT(*) FROM processed_emails WHERE message_id = %s" "$message_id" 2>>$TMP_LOG)
+    processed=$(mysql_exec mails_monitor "SELECT COUNT(*) FROM processed_emails WHERE message_id = %s" "$message_id")
     if [ "$processed" -gt 0 ]; then
       continue
     fi
 
     # fetch mail details
-    message_content=$(gog gmail get $message_id --json --account $GOG_ACCOUNT 2>>$TMP_LOG | tee -a $TMP_LOG)
+    message_content=$(gog gmail get $message_id --json --account $GOG_ACCOUNT 2>>$TMP_LOG)
     message_subject=$(echo $message_content | jq -r '.headers.subject')
     message_sender=$(echo $message_content | jq -r '.headers.from')
     message_date=$(date -d "$(echo $message_content | jq -r '.headers.date')" +"%Y-%m-%d %H:%M:%S")
@@ -48,14 +50,14 @@ for sender in  "$@"; do
     echo "" >> $TMP_OUTPUT
 
     # insert to processed_emails table
-    mysql_exec mails_monitor "INSERT IGNORE INTO processed_emails (message_id, subject, sender, received_at) VALUES (%s, %s, %s, %s)" "$message_id" "$message_subject" "$message_sender" "$message_date" 2>>$TMP_LOG
+    mysql_exec mails_monitor "INSERT IGNORE INTO processed_emails (message_id, subject, sender, received_at) VALUES (%s, %s, %s, %s)" "$message_id" "$message_subject" "$message_sender" "$message_date"
 
     # update counter
     new_count=$((new_count + 1))
   done < <(gog gmail messages search "from:$sender after:$last_day" --max 20 --json --account $GOG_ACCOUNT 2>>$TMP_LOG | tee -a $TMP_LOG | jq -c '.messages[]' 2>>$TMP_LOG)
 
   # update last_scan_time (upsert)
-  mysql_exec mails_monitor "REPLACE INTO scan_state (sender, last_scan_time) VALUES (%s, %s)" "$sender" "$new_time" 2>>$TMP_LOG
+  mysql_exec mails_monitor "REPLACE INTO scan_state (sender, last_scan_time) VALUES (%s, %s)" "$sender" "$new_time"
 done
 
 # Output result
