@@ -301,3 +301,8 @@ ORDER BY SUM(amount) DESC;
 Replace `{DATE_FILTER}` with the appropriate clause from the table above.
 
 You can also decide what query to use based on the schema of table `transactions` in the `expense` database.
+
+
+## Error Handling
+
+- If the scripts failed or printed any error message, just post the error information to user and end the flow, NEVER try to process the workflow by reading code or using your own code.

@@ -115,3 +115,7 @@ User can also ask questions directly in chat
 - "Explain more details for a summarized mail" -> Answer user's question based on this content of plain text file. If you lost the extracted email content, you can use the following steps to re-fetch
   - Fetch mail content by `gog gmail get <message_id> --account $GOG_ACCOUNT` and save it to a json file.
   - extract the json to a plain text by `mail_extract <gmail_json_file>.json <plain_text_content_file>.txt`
+
+## Error Handling
+
+- If the scripts failed or printed any error message, just post the error information to user and end the flow, NEVER try to process the workflow by reading code or using your own code.
