@@ -244,3 +244,5 @@ Thanks for playing!
 6. **Multi-action response**: After your action, `parsed_actions` may show Slumbot's response AND a new street starting. Display all of it sequentially before asking for the user's next action.
 
 7. If there is any misalignment for any number value between your assumption and json output during the playing, alway respect and use json value!
+
+8. Always respect user's action to send API request, the API will verify user's action valid or not, DON't verify user's action by yourself.
