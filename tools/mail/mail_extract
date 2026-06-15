@@ -98,15 +98,15 @@ def main():
     date = get_header(headers, 'Date')
 
     # parse body
-    root_body = data.get('body', '').strip()
-    if root_body:
-        body = root_body
+    parts = payload.get('parts', [])
+    result = []
+    extract_parts(parts, result)
+    if result:
+        body = '\n'.join(result)
     else:
-        parts = payload.get('parts', [])
-        result = []
-        extract_parts(parts, result)
-        if result:
-            body = '\n'.join(result)
+        root_body = data.get('body', '').strip()
+        if root_body:
+            body = root_body
         else:
             body = data.get('message', data).get('snippet', 'No body content found.')
 
