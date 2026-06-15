@@ -35,6 +35,11 @@ Monitor and summarize emails from school-related senders, then deliver formatted
 - PTA/parent communications
 - Schedule changes
 
+**SUNNY CLUB(staff.sunnyclub@gmail.com):**
+- Class announcements for Japanese after school activities
+- Class content forcast and review
+- Schedule changes
+
 ## Scripts
 
 Scripts that will be used in this skill
@@ -55,16 +60,16 @@ Database is `mails_monitor` on the configured MySQL server
 ### Step 1: Run the script
 
 ```bash
-mail_fetch "veracross.com" "@issh.ac.jp"
+mail_fetch "veracross.com" "@issh.ac.jp" "staff.sunnyclub@gmail.com"
 ```
 
-This fetches all new emails sent by "veracross.com" and "@issh.ac.jp" after last fetch date, deduplicates, and output clean content text to a temp file. The temp file path is printed by stdout as 'Save all emails content to file: <temp_file_path>'
+This fetches all new emails sent by "veracross.com" and "@issh.ac.jp" and "staff.sunnyclub@gmail.com" after last fetch date, deduplicates, and output clean content text to a temp file. The temp file path is printed by stdout as 'Save all emails content to file: <temp_file_path>'
 If output says `NO_NEW_EMAILS`, skip step 2 and go to step 3 directly.
 
 
-### Step 2: Summarize each email and send to slack (THIS IS YOUR JOB)
+### Step 2: Translate each mail into **CHINESE** and list all required actions if there is (THIS IS YOUR JOB)
 
-Read the temp file got at step 1, for each email in the file, create a summary with the following format:
+Read the temp file got at step 1, for each email in the file, create a translate with the following format:
 
 ```
 📧 [Title/Subject]
@@ -72,9 +77,8 @@ Read the temp file got at step 1, for each email in the file, create a summary w
 From: [sender name and email]
 Date: [received date]
 
-📝 Summary
-[2-4 sentence summary of the email body in the **CHINESE**.
-Translate the email body If the email is in English or Japanese.]
+📝 Translation
+[the email body in the **CHINESE**. Translate the email body If the email is in English or Japanese.]
 
 ⚡ Actions Required
 [List any action items, deadlines, or things the recipient needs to do.
@@ -84,7 +88,7 @@ If none, write "No action required."]
 
 ### Step 3: Send the workflow result to slack
 
-Next, send the summary of each email to the Slack channel using the `message` tool.
+Next, send the translate of each email to the Slack channel using the `message` tool.
 
 Last, send the summary of this execution to slack with the following format.
 Attention: No matter if there are new mails or not, always send this summary to slack
